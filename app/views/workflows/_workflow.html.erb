@@ -1,0 +1,5 @@
+<tr id="<%= dom_id(workflow) %>" class="workflow-row" data-href="<%= workflow_path(workflow) %>">
+  <td class="fw-bold text-center"><%= link_to workflow.id, workflow_path(workflow) %></td>
+  <td><%= link_to workflow.title, workflow_path(workflow) %></td>
+  <td><%= truncate(workflow.description, length: 80) %></td>
+</tr>

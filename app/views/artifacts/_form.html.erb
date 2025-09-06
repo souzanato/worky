@@ -1,0 +1,36 @@
+<%= form_with(model: [@resource, @artifact]) do |f| %>
+  <div class="mb-3">
+    <%= f.label :title, class: "form-label" %>
+    <%= f.text_field :title, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :description, class: "form-label" %>
+    <%= f.text_area :description, rows: 6, class: "form-control" %>
+  </div>
+
+  <div class="mb-3">
+    <%= f.label :content, class: "form-label" %>
+    <%= f.text_area :content, rows: 6, class: "form-control d-none", placeholder: "Paste details, prompts, or raw notes…" %>
+  
+    <div data-controller="monaco"
+        data-monaco-initial-value="<%= f.object.content %>"
+        data-monaco-language-value="markdown"
+        data-monaco-height-value="400px"
+        data-monaco-hidden-field-id-value="artifact_content"
+    ></div>
+  </div>
+
+  <% unless @artifact.file.attached? %>
+    <div class="mb-3">
+      <%= f.label :file, class: "form-label" %>
+      <%= f.file_field :file, class: "form-control" %>
+    </div>
+  <% end %>
+
+  <div class="d-flex gap-2">
+    <%= f.submit(@artifact.persisted? ? t(".update", default: "Update") : t(".create", default: "Create"),
+                 class: "btn btn-theme") %>
+    <button type="button" class="btn btn-outline-secondary" data-action="modal#hide"><%= t(".cancel", default: "Cancel") %></button>
+  </div>
+<% end %>

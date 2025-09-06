@@ -1,0 +1,56 @@
+<%= form_with(
+      model: @client,
+      validate: true,
+      html: { id: (@client.persisted? ? 'edit-client' : 'new-client'),
+              class: 'fs-13px', novalidate: true },
+      data: { turbo: true }
+    ) do |f| %>
+
+  <% if @client.errors.any? %>
+    <div class="alert alert-danger">
+      <div class="fw-bold mb-2"><%= t(".errors_title", default: "Please fix the errors below") %></div>
+      <ul class="m-0 ps-3">
+        <% @client.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Name -->
+  <div class="form-floating mt-15px">
+    <%= f.text_field :name,
+          placeholder: t('placeholders.client.name'),
+          class: 'form-control h-45px fs-13px' %>
+    <%= f.label :name,
+          t('activerecord.attributes.client.name'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+    <!-- Email -->
+  <div class="form-floating mt-15px">
+    <%= f.text_field :email,
+          placeholder: t('placeholders.client.email'),
+          class: 'form-control h-45px fs-13px' %>
+    <%= f.label :name,
+          t('activerecord.attributes.client.email'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Description -->
+  <div class="form-floating mt-15px">
+    <%= f.text_area :description,
+          placeholder: t('placeholders.client.description'),
+          class: 'form-control fs-13px', rows: 5 %>
+    <%= f.label :description,
+          t('activerecord.attributes.client.description'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Submit -->
+  <div class="mb-15px mt-15px">
+    <%= f.submit(
+          @client.persisted? ? t('.update', default: 'Update') : t('.create', default: 'Create'),
+          class: 'btn btn-theme d-block w-100 btn-lg h-45px fs-13px',
+          disabled_with: t('.please_wait', default: 'Please wait...')
+        ) %>
+  </div>
+<% end %>

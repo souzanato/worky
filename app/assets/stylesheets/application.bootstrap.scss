@@ -1,0 +1,21 @@
+// app/assets/stylesheets/application.bootstrap.scss
+@import 'bootstrap/scss/bootstrap';
+@import 'bootstrap-icons/font/bootstrap-icons';
+@import "color-admin/css/vendor";
+@import "color-admin/css/default/app";
+
+@import "./jquery-ui";
+@import "perfect-scrollbar/css/perfect-scrollbar";
+@import "./client_side_validations";
+
+// (CSS do DataTables, se não vier via tema)
+// @import "datatables.net-bs5/css/dataTables.bootstrap5.min.css";
+// @import "datatables.net-responsive-bs5/css/responsive.bootstrap5.min.css";
+// @import "datatables.net-buttons-bs5/css/buttons.bootstrap5.min.css";
+
+@import "./users.scss";
+@import "./steps.scss";
+@import "./actions.scss";
+@import "./block-ui.scss";
+
+@import "./app";

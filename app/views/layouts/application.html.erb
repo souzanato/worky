@@ -1,0 +1,197 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || t('general.app.name', default: 'Worky') %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# PWA manifest (habilite a rota se for usar) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <%# Favicons %>
+    <%# Apple touch icons %>
+    <% [57,60,72,76,114,120,144,152,180].each do |s| %>
+      <%= favicon_link_tag "apple-icon-#{s}x#{s}.png",
+            rel: "apple-touch-icon",
+            sizes: "#{s}x#{s}" %>
+    <% end %>
+
+    <%# PNG favicons %>
+    <%= favicon_link_tag "android-icon-192x192.png", rel: "icon", type: "image/png", sizes: "192x192" %>
+    <%= favicon_link_tag "favicon-32x32.png",        rel: "icon", type: "image/png", sizes: "32x32"  %>
+    <%= favicon_link_tag "favicon-96x96.png",        rel: "icon", type: "image/png", sizes: "96x96"  %>
+    <%= favicon_link_tag "favicon-16x16.png",        rel: "icon", type: "image/png", sizes: "16x16"  %>
+
+    <%# Manifest PWA %>
+    <%#= tag.link rel: "manifest", href: asset_path("manifest.json") %>
+
+    <%# Microsoft tiles / theme color %>
+    <%= tag.meta name: "msapplication-TileColor", content: "#ffffff" %>
+    <%= tag.meta name: "msapplication-TileImage", content: asset_path("ms-icon-144x144.png") %>
+    <%= tag.meta name: "theme-color", content: "#ffffff" %>
+
+    <%# Styles & JS %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+  </head>
+
+  <body>
+    <!-- BEGIN #loader -->
+    <!-- <div id="loader" class="app-loader">
+      <span class="spinner" aria-label="<%= t('layout.loader.loading', default: 'Loading') %>"></span>
+    </div> -->
+    <!-- END #loader -->
+
+    <!-- BEGIN #app -->
+    <div id="app" class="app app-header-fixed app-sidebar-fixed">
+      <!-- BEGIN #header -->
+      <div id="header" class="app-header">
+        <!-- BEGIN navbar-header -->
+        <div class="navbar-header">
+          <%= link_to root_path, class: "navbar-brand" do %>
+            <%= image_tag "baia-icon.png", style: "height: 2em", alt: t('general.app.name') %>
+            <b class="me-3px"><%= t('general.app.name', default: 'App') %></b> <%= t('general.app.short', default: 'Admin') %>
+          <% end %>
+
+          <button type="button"
+                  class="navbar-mobile-toggler"
+                  data-toggle="app-sidebar-mobile"
+                  aria-label="<%= t('layout.header.toggle_sidebar', default: 'Toggle sidebar') %>">
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+        </div>
+        <!-- END navbar-header -->
+
+        <!-- BEGIN header-nav -->
+        <div class="navbar-nav">
+          <div class="navbar-item navbar-user dropdown">
+            <a href="#" class="navbar-link dropdown-toggle d-flex align-items-center" data-bs-toggle="dropdown" aria-expanded="false">
+              <%= image_tag "color-admin/img/user/#{current_user.avatar}", alt: "", skip_pipeline: false %>
+              <span>
+                <span class="d-none d-md-inline fw-bold">
+                  <%= (defined?(current_user) && current_user&.respond_to?(:first_name)) ? current_user.first_name : t('layout.header.user_fallback', default: 'User') %>
+                </span>
+              </span>
+            </a>
+
+            <div class="dropdown-menu dropdown-menu-end me-1">
+              <%= link_to t('layout.header.edit_profile', default: 'Edit Profile'), edit_user_path(current_user), class: "dropdown-item" %>
+              <div class="dropdown-divider" role="separator" aria-label="<%= t('layout.header.separator', default: 'Menu separator') %>"></div>
+
+              <%# Logout (Devise + Turbo) %>
+              <%= button_to t("devise.sessions.log_out", default: "Log Out"),
+                    destroy_user_session_path,
+                    method: :delete,
+                    form: { class: "m-0" },
+                    data: { turbo: true },
+                    class: "dropdown-item text-start" %>
+            </div>
+          </div>
+        </div>
+        <!-- END header-nav -->
+      </div>
+      <!-- END #header -->
+
+      <!-- BEGIN #sidebar -->
+      <div id="sidebar" class="app-sidebar" data-bs-theme="dark">
+        <!-- BEGIN scrollbar -->
+        <div class="app-sidebar-content" data-scrollbar="true" data-height="100%">
+          <!-- BEGIN menu -->
+          <div class="menu">
+            <div class="menu-profile">
+              <a href="javascript:;" class="menu-profile-link" data-toggle="app-sidebar-profile" data-target="#appSidebarProfileMenu" aria-expanded="false">
+                <div class="menu-profile-cover with-shadow"></div>
+                <div class="menu-profile-image">
+                  <%= image_tag "color-admin/img/user/#{current_user.avatar}", alt: "" %>
+                </div>
+                <div class="menu-profile-info">
+                  <div class="d-flex align-items-center">
+                    <div class="flex-grow-1">
+                      <%= (defined?(current_user) && current_user&.respond_to?(:first_name)) ? current_user.first_name : t('layout.header.user_fallback', default: 'User') %>
+                    </div>
+                    <div class="menu-caret ms-auto" aria-hidden="true"></div>
+                  </div>
+                  <small>
+                    <%= current_user.try(:current_role)&.try(:name).presence || t('layout.sidebar.no_role', default: 'No role') %>
+                  </small>
+                </div>
+              </a>
+            </div>
+
+            <!-- <div id="appSidebarProfileMenu" class="collapse">
+              <div class="menu-item pt-5px">
+                <%= link_to "#", class: "menu-link" do %>
+                  <div class="menu-icon"><i class="fa fa-cog"></i></div>
+                  <div class="menu-text"><%= t('layout.sidebar.settings', default: 'Settings') %></div>
+                <% end %>
+              </div>
+              <div class="menu-item">
+                <%= link_to "#", class: "menu-link" do %>
+                  <div class="menu-icon"><i class="fa fa-pencil-alt"></i></div>
+                  <div class="menu-text"><%= t('layout.sidebar.send_feedback', default: 'Send Feedback') %></div>
+                <% end %>
+              </div>
+              <div class="menu-item pb-5px">
+                <%= link_to "#", class: "menu-link" do %>
+                  <div class="menu-icon"><i class="fa fa-question-circle"></i></div>
+                  <div class="menu-text"><%= t('layout.sidebar.helps', default: 'Helps') %></div>
+                <% end %>
+              </div>
+              <div class="menu-divider m-0"></div>
+            </div> -->
+
+            <div class="menu-header"><%= t('layout.sidebar.navigation', default: 'Navigation') %></div>
+
+            <%= render_sidebar_menu %>
+
+            <!-- BEGIN minify-button -->
+            <div class="menu-item d-flex">
+              <a href="javascript:;"
+                 class="app-sidebar-minify-btn ms-auto d-flex align-items-center text-decoration-none"
+                 data-toggle="app-sidebar-minify"
+                 aria-label="<%= t('layout.sidebar.minify', default: 'Minify sidebar') %>">
+                <i class="fa fa-angle-double-left"></i>
+              </a>
+            </div>
+            <!-- END minify-button -->
+          </div>
+          <!-- END menu -->
+        </div>
+        <!-- END scrollbar -->
+      </div>
+      <div class="app-sidebar-bg" data-bs-theme="dark"></div>
+      <div class="app-sidebar-mobile-backdrop"><a href="#" data-dismiss="app-sidebar-mobile" class="stretched-link" aria-label="<%= t('layout.sidebar.close_mobile', default: 'Close sidebar') %>"></a></div>
+      <!-- END #sidebar -->
+
+      <!-- BEGIN #content -->
+      <div id="content" class="app-content">
+        <!-- BEGIN breadcrumb -->
+        <%= breadcrumbs style: :bootstrap5, class: "breadcrumb float-xl-end" %>
+        <!-- END breadcrumb -->
+
+        <%= yield %>
+      </div>
+      <!-- END #content -->
+
+      <!-- BEGIN scroll-top-btn -->
+      <a href="javascript:;"
+         class="btn btn-icon btn-circle btn-theme btn-scroll-to-top"
+         data-toggle="scroll-to-top"
+         aria-label="<%= t('layout.footer.scroll_to_top', default: 'Scroll to top') %>">
+        <i class="fa fa-angle-up"></i>
+      </a>
+      <!-- END scroll-top-btn -->
+    </div>
+    <!-- END #app -->
+
+    <%= render "shared/flash" %>
+    <turbo-frame id="modal"></turbo-frame> <!-- alvo único para carregar modais -->
+  </body>
+</html>

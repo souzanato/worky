@@ -1,0 +1,84 @@
+<!-- app/views/actions/_form.html.erb -->
+<!-- Nav tabs (fora do card) -->
+<ul class="nav nav-tabs nav-tabs-inverse" role="tablist">
+  <li class="nav-item" role="presentation">
+    <a href="#action-general-tab" data-bs-toggle="tab" class="nav-link active" aria-selected="true" role="tab">
+      <i class="fa fa-fw fa-lg fa-cog"></i> <span class="d-none d-xl-inline">General</span>
+    </a>
+  </li>
+  <li class="nav-item" role="presentation">
+    <a href="#ai-action-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+      <i class="fa fa-fw fa-lg fa-robot"></i> <span class="d-none d-xl-inline">AI Action</span>
+    </a>
+  </li>
+</ul>
+
+<!-- Tab content -->
+<!-- app/views/actions/_form.html.erb -->
+<%= form_with(model: [@workflow, @step, @action], scope: :workflow_action, html: {class: 'tab-content p-3 bg-white'}) do |f| %>
+  <!-- General -->
+  <div class="tab-pane fade show active" id="action-general-tab" role="tabpanel">
+    <div class="mb-3">
+      <%= f.label :title, class: "form-label" %>
+      <%= f.text_field :title, class: "form-control", required: true %>
+    </div>
+    
+    <div class="mb-3">
+      <%= f.label :description, class: "form-label" %>
+      <%= f.text_area :description, rows: 3, class: "form-control" %>
+    </div>
+
+    <div class="mb-3">
+      <%= f.label :artifact_name, class: "form-label" %>
+      <%= f.text_field :artifact_name, class: "form-control", required: true %>
+    </div>
+
+    <div class="mb-3">
+      <%= f.label :content, class: "form-label" %>
+      <%= f.text_area :content, rows: 6, class: "form-control d-none", placeholder: "Paste details, prompts, or raw notes…" %>
+    
+      <div data-controller="monaco"
+          data-monaco-initial-value="<%= f.object.content %>"
+          data-monaco-language-value="markdown"
+          data-monaco-height-value="400px"
+          data-monaco-hidden-field-id-value="workflow_action_content"
+      ></div>
+    </div>
+
+    <div class="mb-3">
+      <%= f.label :order, class: "form-label" %>
+      <%= f.number_field :order, class: "form-control", min: 1 %>
+    </div>
+  </div>
+
+  <!-- Artifacts -->
+  <div class="tab-pane fade" 
+        id="ai-action-tab" 
+        data-controller="step-action"
+        data-action="change->step-action#toggleAiModel"        
+        role="tabpanel">
+        
+    <div class="form-check form-switch mb-3">
+      <%= f.check_box :has_prompt_generator, class: "form-check-input" %>
+      <%= f.label :has_prompt_generator, class: "form-check-label" %>
+    </div>  
+
+    <div class="form-check form-switch mb-3">
+      <%= f.check_box :has_ai_action, class: "form-check-input", data: { step_action_target: "hasAiActionCheckbox" } %>
+      <%= f.label :has_ai_action, class: "form-check-label" %>
+    </div>  
+
+
+    <%= f.fields_for :ai_action, f.object.ai_action || f.object.build_ai_action do |ai_action_form| %>
+      <%= render(partial: "ai_action_form", locals: {f: ai_action_form}) %>
+    <% end %>
+
+  </div>
+
+  <div class="d-flex gap-2">
+    <%= f.submit(@action.persisted? ? t(".update", default: "Update") : t(".create", default: "Create"), class: "btn btn-theme") %>
+    <button type="button" class="btn btn-outline-secondary" data-action="modal#hide"><%= t(".cancel", default: "Cancel") %></button>
+  </div>
+<% end %>
+
+

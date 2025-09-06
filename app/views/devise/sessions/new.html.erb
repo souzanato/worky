@@ -1,0 +1,47 @@
+<%= form_for(
+    resource, 
+    as: resource_name, 
+    url: session_path(resource_name), 
+    html: { id: 'new-session', class: "fs-13px", novalidate: true }, validate: true) do |f| %>
+  
+  <!-- Email -->
+  <div class="form-floating mt-15px">
+    <%= f.email_field :email,
+          autofocus: true,
+          autocomplete: "email",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.email'),
+          id: "emailAddress" %>
+    <%= f.label :email, t('activerecord.attributes.user.email'),
+          for: "emailAddress",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <!-- Password -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password,
+          autocomplete: "current-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.password'),
+          id: "password" %>
+    <%= f.label :password, t('activerecord.attributes.user.password'),
+          for: "password",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <!-- Remember Me -->
+  <% if devise_mapping.rememberable? %>
+    <div class="form-check mt-15px mb-30px">
+      <%= f.check_box :remember_me, class: "form-check-input", value: "1", id: "rememberMe" %>
+      <%= f.label :remember_me, t('devise.sessions.remember_me'), class: "form-check-label", for: "rememberMe" %>
+    </div>
+  <% end %>
+
+  <!-- Submit -->
+  <div class="mb-15px">
+    <%= f.submit t('buttons.sessions.sign_in'),
+          class: "btn btn-theme d-block h-45px w-100 btn-lg fs-14px",
+          disabled_with: "Please wait..." %>
+  </div>
+<% end %>
+

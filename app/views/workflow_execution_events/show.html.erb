@@ -1,0 +1,10 @@
+<p style="color: green"><%= notice %></p>
+
+<%= render @workflow_execution_event %>
+
+<div>
+  <%= link_to "Edit this workflow execution event", edit_workflow_execution_event_path(@workflow_execution_event) %> |
+  <%= link_to "Back to workflow execution events", workflow_execution_events_path %>
+
+  <%= button_to "Destroy this workflow execution event", @workflow_execution_event, method: :delete %>
+</div>

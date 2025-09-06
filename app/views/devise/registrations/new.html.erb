@@ -1,0 +1,75 @@
+<%= form_for(
+      resource,
+      as: resource_name,
+      url: registration_path(resource_name),
+      html: { id: 'new-registration', class: 'fs-13px', novalidate: true },
+      validate: true
+    ) do |f| %>
+
+  <!-- Name -->
+  <div class="row gx-3">
+    <div class="col-md-6">
+      <div class="form-floating mt-15px">
+        <%= f.text_field :first_name,
+              placeholder: t('placeholders.user.first_name'),
+              class: 'form-control h-45px fs-13px',
+              autocomplete: 'given-name' %>
+        <%= f.label :first_name, t('activerecord.attributes.user.first_name'),
+              class: 'd-flex align-items-center fs-13px text-gray-600' %>
+      </div>
+    </div>
+    <div class="col-md-6">
+      <div class="form-floating mt-15px">
+        <%= f.text_field :last_name,
+              placeholder: t('placeholders.user.last_name'),
+              class: 'form-control h-45px fs-13px',
+              autocomplete: 'family-name' %>
+        <%= f.label :last_name, t('activerecord.attributes.user.last_name'),
+              class: 'd-flex align-items-center fs-13px text-gray-600' %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email -->
+  <div class="form-floating mt-15px">
+    <%= f.email_field :email,
+          autocomplete: 'email',
+          class: 'form-control h-45px fs-13px',
+          placeholder: t('placeholders.user.email') %>
+    <%= f.label :email, t('activerecord.attributes.user.email'),
+          for: 'registrationEmail',
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Password -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password,
+          placeholder: t('placeholders.user.password'),
+          class: 'form-control h-45px fs-13px',
+          autocomplete: 'new-password',
+          validate: { presence: true, confirmation: true } %>
+    <%= f.label :password, t('activerecord.attributes.user.password'),
+          for: 'registrationPassword',
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Password confirmation -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password_confirmation,
+          placeholder: t('placeholders.user.password_confirmation'),
+          class: 'form-control h-45px fs-13px',
+          autocomplete: 'new-password',
+          validate: { presence: true } %>
+    <%= f.label :password_confirmation, t('activerecord.attributes.user.password_confirmation'),
+          for: 'registrationPasswordConfirmation',
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Submit -->
+  <div class="mb-15px mt-15px">
+    <%= f.submit t('buttons.registration.sign_up'),
+          class: 'btn btn-theme d-block w-100 btn-lg h-45px fs-13px',
+          disabled_with: 'Please wait...' %>
+  </div>
+
+<% end %>

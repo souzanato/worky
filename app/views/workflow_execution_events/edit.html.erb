@@ -1,0 +1,12 @@
+<% content_for :title, "Editing workflow execution event" %>
+
+<h1>Editing workflow execution event</h1>
+
+<%= render "form", workflow_execution_event: @workflow_execution_event %>
+
+<br>
+
+<div>
+  <%= link_to "Show this workflow execution event", @workflow_execution_event %> |
+  <%= link_to "Back to workflow execution events", workflow_execution_events_path %>
+</div>

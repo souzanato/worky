@@ -1,0 +1,1 @@
+json.partial! "workflow_execution_events/workflow_execution_event", workflow_execution_event: @workflow_execution_event

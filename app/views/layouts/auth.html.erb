@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title><%= content_for(:title) || "Worky" %></title>
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <%= csrf_meta_tags %>
+    <%= csp_meta_tag %>
+
+    <%= yield :head %>
+
+    <%# Enable PWA manifest for installable apps (make sure to enable in config/routes.rb too!) %>
+    <%#= tag.link rel: "manifest", href: pwa_manifest_path(format: :json) %>
+
+    <link rel="icon" href="/icon.png" type="image/png">
+    <link rel="icon" href="/icon.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/icon.png">
+
+    <%# Includes all stylesheet files in app/assets/stylesheets %>
+    <%= stylesheet_link_tag :app, "data-turbo-track": "reload" %>
+    <%= javascript_include_tag "application", "data-turbo-track": "reload", type: "module" %>
+  </head>
+
+  <body>
+    <!-- BEGIN #loader -->
+    <div id="loader" class="app-loader">
+      <span class="spinner"></span>
+    </div>
+    <!-- END #loader -->
+
+    <!-- BEGIN #app -->
+    <div id="app" class="app">
+      <!-- BEGIN login -->
+      <div class="login login-with-news-feed">
+        <!-- BEGIN news-feed -->
+        <div class="news-feed">
+          <%= tag.div class: "news-image",
+                      style: "background-image: url(#{image_path('baia.png')})" %>
+          <div class="news-caption">
+            <h4 class="caption-title">
+              <b><%= t('general.app.short') %></b> <%= t('general.app.name') %>
+            </h4>
+            <p><%= t('texts.registration.caption_html') %></p>
+          </div>
+        </div>
+        <!-- END news-feed -->
+        
+        <!-- BEGIN login-container -->
+        <div class="login-container">
+          <!-- BEGIN login-header -->
+          <div class="login-header mb-30px">
+            <div class="brand">
+              <div class="d-flex align-items-center">
+                <%= image_tag "baia-icon.png", style: "height: 1.1em" %>
+                <b class="me-1"><%= t('general.app.name') %></b> <%= t('general.app.short') %>
+              </div>
+              <small><%= t('texts.registration.caption_html') %></small>
+            </div>
+            <div class="icon">
+              <%= content_for?(:auth_icon) ? yield(:auth_icon) : content_tag(:i, nil, class: "fa fa-sign-in-alt") %>
+            </div>
+          </div>
+          <!-- END login-header -->
+          
+          <!-- BEGIN login-content -->
+          <div class="login-content">
+            <%= yield %>
+
+            <!-- Links -->
+            <div class="mb-40px pb-40px text-dark devise-links">
+              <%= render "devise/shared/links" %>
+            </div>
+
+            <hr class="bg-gray-600 opacity-2" />
+            <div class="text-gray-600 text-center mb-0">
+              &copy; <%= t('general.app.name') %> <%= Time.current.year %>
+            </div>
+          </div>
+          <!-- END login-content -->
+        </div>
+        <!-- END login-container -->
+      </div>
+      <!-- END login -->
+    </div>
+    <!-- END #app -->
+    
+    <%= render "shared/flash" %>
+  </body>
+
+</html>

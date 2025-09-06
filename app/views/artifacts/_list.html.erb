@@ -1,0 +1,68 @@
+<div id="artifacts-list-<%= resource.class.name %>-<%= resource.id %>">
+  <div class="card border-0 mb-4">
+    <div class="card-header bg-none p-3 h6 m-0 d-flex align-items-center">
+      <i class="fa fa-paperclip fa-lg me-2 text-gray text-opacity-50"></i>
+      Artifacts
+      <span class="badge bg-secondary ms-2"><%= resource.artifacts.size %></span>
+
+      <%= link_to t(".add_artifact", default: "Add Artifact"),
+                  [:new, resource, :artifact],
+                  data: { turbo_frame: "modal" },
+                  class: "btn btn-sm btn-outline-primary ms-auto" %>
+    </div>
+
+    <div class="card-body p-3">
+      <% if resource.artifacts.any? %>
+        <% resource.artifacts.each_with_index do |artifact, idx| %>
+          <div class="border rounded p-3 mb-3 bg-light">
+              <div class="d-flex align-items-center">
+                <div class="d-flex align-items-center">
+                  <span class="badge bg-secondary me-2"
+                        data-controller="copy"
+                        data-action="click->copy#copy"
+                        data-copy-text-value="<%= artifact.code %>"
+                        style="cursor: pointer;">
+                    <%= artifact.code %>
+                  </span>
+                  <span class="badge bg-light text-dark border me-2">#<%= idx + 1 %></span>
+                  <strong>
+                    <%= artifact.title.presence || artifact.file.filename.to_s %>
+                  </strong>
+                </div>
+                <div class="ms-auto d-flex gap-2">
+                <% if artifact.file.attached? %>
+                    <%= link_to url_for(artifact.file),
+                                class: "btn btn-sm btn-outline-success",
+                                target: "_blank",
+                                download: artifact.file.filename.to_s do %>
+                    <i class="fa fa-download"></i>
+                    <% end %>
+                <% end %>
+
+                <%= link_to [:edit, resource, artifact],
+                            data: { turbo_frame: "modal" },
+                            class: "btn btn-sm btn-outline-dark" do %>
+                  <i class="fa fa-pen"></i>
+                <% end %>
+
+                <%= link_to [resource, artifact],
+                            data: { turbo_method: :delete, turbo_confirm: "Are you sure?" },
+                            class: "btn btn-sm btn-outline-danger" do %>
+                  <i class="fa fa-trash"></i>
+                <% end %>
+              </div>
+            </div>
+
+            <% if artifact.description.present? %>
+              <div class="mt-2 small text-dark text-opacity-75">
+                <%= simple_format(artifact.description) %>
+              </div>
+            <% end %>
+          </div>
+        <% end %>
+      <% else %>
+        <div class="text-muted"><%= t(".no_files", default: "No artifacts yet") %></div>
+      <% end %>
+    </div>
+  </div>
+</div>

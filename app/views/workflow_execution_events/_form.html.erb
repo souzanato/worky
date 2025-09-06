@@ -1,0 +1,17 @@
+<%= form_with(model: workflow_execution_event) do |form| %>
+  <% if workflow_execution_event.errors.any? %>
+    <div style="color: red">
+      <h2><%= pluralize(workflow_execution_event.errors.count, "error") %> prohibited this workflow_execution_event from being saved:</h2>
+
+      <ul>
+        <% workflow_execution_event.errors.each do |error| %>
+          <li><%= error.full_message %></li>
+        <% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <div>
+    <%= form.submit %>
+  </div>
+<% end %>

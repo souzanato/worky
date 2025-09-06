@@ -1,0 +1,78 @@
+<%= form_for(resource,
+      as: resource_name,
+      url: registration_path(resource_name),
+      html: { method: :put, class: 'fs-13px', novalidate: true },
+      validate: true) do |f| %>
+
+  <%= render "devise/shared/error_messages", resource: resource %>
+
+  <!-- Email -->
+  <div class="form-floating mt-15px">
+    <%= f.email_field :email,
+          autofocus: true,
+          autocomplete: "email",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.email'),
+          id: "editEmail" %>
+    <%= f.label :email, t('activerecord.attributes.user.email'),
+          for: "editEmail",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <% if devise_mapping.confirmable? && resource.pending_reconfirmation? %>
+    <div class="alert alert-warning fs-12px mt-2">
+      <%= t('texts.registration.pending_reconfirmation', default: 'Currently waiting confirmation for:') %>
+      <b><%= resource.unconfirmed_email %></b>
+    </div>
+  <% end %>
+
+  <!-- New password -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password,
+          autocomplete: "new-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.password'),
+          id: "editPassword" %>
+    <%= f.label :password, t('activerecord.attributes.user.password'),
+          for: "editPassword",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+    <% if @minimum_password_length %>
+      <small class="text-muted d-block mt-1">
+        <%= @minimum_password_length %> <%= t('texts.passwords.characters_minimum', default: 'characters minimum') %>
+      </small>
+    <% end %>
+  </div>
+
+  <!-- Password confirmation -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password_confirmation,
+          autocomplete: "new-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.password_confirmation'),
+          id: "editPasswordConfirmation" %>
+    <%= f.label :password_confirmation, t('activerecord.attributes.user.password_confirmation'),
+          for: "editPasswordConfirmation",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <!-- Current password -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :current_password,
+          autocomplete: "current-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.current_password', default: 'Current password'),
+          id: "currentPassword" %>
+    <%= f.label :current_password, t('activerecord.attributes.user.current_password', default: 'Current password'),
+          for: "currentPassword",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+    <small class="text-muted d-block mt-1">
+      <%= t('texts.passwords.need_current_to_confirm', default: 'we need your current password to confirm your changes') %>
+    </small>
+  </div>
+
+  <div class="mb-15px mt-15px">
+    <%= f.submit t('buttons.registration.update', default: 'Update'),
+          class: "btn btn-theme d-block w-100 btn-lg h-45px fs-13px",
+          disabled_with: "Please wait..." %>
+  </div>
+<% end %>

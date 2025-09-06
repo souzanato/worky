@@ -1,0 +1,43 @@
+<!-- app/views/artifacts/index.html.erb -->
+<% breadcrumb :artifacts %>
+
+<h1 class="page-header">
+  <%= t(".title", default: "Artifacts") %>
+  <small><%= t(".subtitle", default: "Manage saved artifacts") %></small>
+</h1>
+
+<div class="panel panel-inverse">
+  <div class="panel-heading">
+    <h4 class="panel-title"><%= t(".table_title", default: "Artifacts") %></h4>
+    <div class="panel-heading-btn">
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-default" data-toggle="panel-expand"><i class="fa fa-expand"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-success" data-toggle="panel-reload"><i class="fa fa-redo"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-warning" data-toggle="panel-collapse"><i class="fa fa-minus"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-danger" data-toggle="panel-remove"><i class="fa fa-times"></i></a>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <div class="d-flex mb-3">
+      <div class="ms-auto">
+        <% if can?(:create, Artifact) %>
+          <%= link_to t(".new", default: "New Artifact"), new_artifact_path, class: "btn btn-theme btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+
+    <table class="table table-hover table-bordered align-middle text-nowrap"
+           data-controller="data-table">
+      <thead>
+        <tr>
+          <th class="text-nowrap" width="1%">#</th>
+          <th class="text-nowrap"><%= t(".title_col", default: "Title") %></th>
+          <th class="text-nowrap"><%= t(".updated_at_col", default: "Updated at") %></th>
+        </tr>
+      </thead>
+      <tbody id="artifacts">
+        <%= render @artifacts %>
+      </tbody>
+    </table>
+  </div>
+</div>

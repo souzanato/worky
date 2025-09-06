@@ -1,0 +1,101 @@
+<div id="workflow-steps-<%= workflow.id %>">
+  <% if workflow.steps.any? %>
+    <% workflow.steps.order(:order).includes(:actions).each_with_index do |step, idx| %>
+      <div class="border rounded p-3 mb-3 bg-lime-100">
+        <div class="d-flex align-items-center">
+          <div class="d-flex align-items-center">
+              <span class="badge bg-light text-dark border me-2">#<%= step.order %></span>
+              <strong><%= step.title.presence || "—" %></strong>
+          </div>
+          <div class="ms-auto d-flex gap-2">
+            <!-- mover step -->
+            <%= link_to "↑",
+                move_up_workflow_step_path(workflow, step),
+                data: { turbo_method: :patch },
+                class: "btn btn-sm btn-outline-secondary #{'disabled' if idx == 0}" %>
+
+            <%= link_to "↓",
+                move_down_workflow_step_path(workflow, step),
+                data: { turbo_method: :patch },
+                class: "btn btn-sm btn-outline-secondary #{'disabled' if idx == workflow.steps.size - 1}" %>
+
+            <!-- editar/excluir step via modal / turbo -->
+            <%= link_to t(".edit", default: "Edit"),
+                edit_workflow_step_path(workflow, step),
+                data: { turbo_frame: "modal" },
+                class: "btn btn-sm btn-outline-dark" %>
+
+            <%= link_to t(".delete", default: "Delete"),
+                workflow_step_path(workflow, step),
+                data: { turbo_method: :delete, turbo_confirm: t(".confirm_delete", default: "Are you sure?") },
+                class: "btn btn-sm btn-outline-danger" %>
+          </div>
+        </div>
+
+        <% if step.description.present? %>
+          <div class="mt-2"><%= simple_format(step.description) %></div>
+        <% end %>
+
+        <!-- Actions da Step -->
+        <div class="mt-5">
+          <div class="d-flex align-items-center mb-2">
+            <span class="fw-bold"><%= t(".actions", default: "Actions") %></span>
+            <span class="badge bg-secondary ms-2"><%= step.actions.size %></span>
+
+            <%= link_to t(".add_action", default: "Add Action"),
+                new_workflow_step_action_path(workflow, step),
+                data: { turbo_frame: "modal" },
+                class: "btn btn-sm btn-outline-success ms-auto" %>
+          </div>
+
+          <% if step.actions.any? %>
+            <div class="list-group">
+              <% actions = step.actions.order(:order).to_a %>
+              <% actions.each_with_index do |action, aidx| %>
+                  <div class="list-group-item d-flex align-items-center">
+                  <div class="d-flex align-items-center flex-grow-1">
+                      <span class="badge bg-light text-dark border me-2">#<%= action.order %></span>
+                      <strong><%= action.title.presence || "—" %></strong> 
+                  </div>
+                  <% if action.description.present? %>
+                      <div class="small text-dark text-opacity-75 ms-3"><%= action.description %></div>
+                  <% end %>
+
+                  <div class="ms-2 d-flex gap-2">
+                      <!-- mover action -->
+                      <%= link_to "↑",
+                          move_up_workflow_step_action_path(workflow, step, action),
+                          data: { turbo_method: :patch },
+                          class: "btn btn-sm btn-outline-secondary #{'disabled' if aidx == 0}" %>
+
+                      <%= link_to "↓",
+                          move_down_workflow_step_action_path(workflow, step, action),
+                          data: { turbo_method: :patch },
+                          class: "btn btn-sm btn-outline-secondary #{'disabled' if aidx == actions.size - 1}" %>
+
+                      <!-- editar/excluir action via modal / turbo -->
+                      <%= link_to edit_workflow_step_action_path(workflow, step, action),
+                          data: { turbo_frame: "modal" },
+                          class: "btn btn-sm btn-outline-dark" do %>
+                      <i class="fa fa-pen"></i>
+                      <% end %>
+
+                      <%= link_to workflow_step_action_path(workflow, step, action),
+                          data: { turbo_method: :delete, turbo_confirm: t(".confirm_delete", default: "Are you sure?") },
+                          class: "btn btn-sm btn-outline-danger" do %>
+                      <i class="fa fa-trash"></i>
+                      <% end %>
+                  </div>
+                  </div>
+              <% end %>
+            </div>
+          <% else %>
+            <div class="text-muted"><%= t(".no_actions", default: "No actions yet") %></div>
+          <% end %>
+        </div>
+      </div>
+    <% end %>
+  <% else %>
+    <div class="text-muted"><%= t(".no_steps", default: "No steps yet") %></div>
+  <% end %>
+</div>

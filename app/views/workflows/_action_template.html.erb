@@ -1,0 +1,21 @@
+<template id="action-template">
+  <div class="border rounded p-2 mb-2" data-workflow-builder-target="action">
+    <div class="row g-2 align-items-center">
+      <div class="col-md-5">
+        <!-- era [NEW_STEP][actions_attributes][NEW_ACTION] -->
+        <input type="text" name="workflow[steps_attributes][][actions_attributes][][title]" class="form-control" placeholder="Action title">
+      </div>
+      <div class="col-md-5">
+        <textarea name="workflow[steps_attributes][][actions_attributes][][description]" rows="1" class="form-control" placeholder="Description"></textarea>
+      </div>
+      <div class="col-md-2 d-flex align-items-center gap-1">
+        <input type="number" name="workflow[steps_attributes][][actions_attributes][][order]" class="form-control text-center" data-workflow-builder-target="actionOrder">
+        <div class="btn-group ms-1">
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-action="workflow-builder#moveActionUp">↑</button>
+          <button type="button" class="btn btn-sm btn-outline-secondary" data-action="workflow-builder#moveActionDown">↓</button>
+          <button type="button" class="btn btn-sm btn-outline-danger" data-action="workflow-builder#removeAction">✕</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>

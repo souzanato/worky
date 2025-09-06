@@ -1,0 +1,8 @@
+<!-- app/views/artifacts/_artifact.html.erb -->
+<tr id="<%= dom_id(artifact) %>">
+  <td class="fw-bold text-center"><%= artifact.id %></td>
+  <td>
+    <%= link_to (artifact.title.presence || "—"), artifact, class: "text-decoration-none" %>
+  </td>
+  <td class="text-end"><%= l(artifact.updated_at, format: :short) %></td>
+</tr>

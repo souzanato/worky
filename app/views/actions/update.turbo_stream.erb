@@ -1,0 +1,5 @@
+<%= turbo_stream.update "workflow-steps-#{@workflow.id}",
+      partial: "workflows/steps_list",
+      locals: { workflow: @workflow.reload } %>
+
+<%= turbo_stream.update "modal", "" %>  <%# fecha a modal limpando o frame %>

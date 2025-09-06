@@ -1,0 +1,10 @@
+apis:
+  pinecone:
+    metric: "cosine"
+    dimensions: "1536"
+    index_name: "https://baia-gj6jb7r.svc.aped-4627-b74a.pinecone.io"
+    api_key: ""
+    namespace: "baia"
+  openai:
+    organization_id: ""
+    api_key: ""

@@ -1,0 +1,185 @@
+<% breadcrumb :client, @client %>
+  <% workflow=Workflow.first %>
+
+    <div class="mb-3 d-md-flex fw-bold">
+      <%= link_to client_path(@client), class: "text-decoration-none text-dark" do %>
+        <i class="fa fa-arrow-left fa-fw me-1 text-dark text-opacity-50"></i>
+        Back
+        <% end %>
+    </div>
+
+
+
+    <div class="invoice">
+      <!-- BEGIN invoice-company -->
+      <div class="invoice-company">
+        <span class="float-end hidden-print">
+          <a href="javascript:;" onclick="window.print()" class="btn btn-sm btn-white mb-10px"><i
+              class="fa fa-user t-plus-1 fa-fw fa-lg"></i> Client</a>
+        </span>
+        <i class="fa fa-play fa-lg me-2 text-gray text-opacity-50"></i>
+        Start New Execution
+      </div>
+      <!-- END invoice-company -->
+
+
+      <div class="container-fluid mb-3">
+  <div class="row bg-cyan-100">
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag("workflow.jpg", class: 'img-fluid' ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Workflow</small><br />
+            <strong>
+              <%= @workflow.title %>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= link_to "#{WorkflowExecution.where(client_id: @client.id, workflow_id: @workflow.id).count} executions for this Client", 'javascript:;', class: 'text-decoration-none' %>
+          </div>
+
+          <div class="small text-dark text-opacity-75">
+            <%= @workflow.description %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag("client.png", class: "img-fluid" ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Client</small><br />
+            <strong>
+              <%= @client.name %><br/>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= mail_to(@client.email, class: 'text-decoration-none' ) %>
+          </div>
+          <div class="small text-dark text-opacity-75">
+            <%= @client.description %>
+              
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag(current_user.avatar_url, class: 'img-fluid' ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Workflow about to be started by</small><br />
+            <strong>
+              <%= current_user.first_name %>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= mail_to(current_user.email, class: 'text-decoration-none' ) %>
+          </div>
+          <div class="small text-dark text-opacity-75">
+            <%= current_date_and_time %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+      
+      <!-- BEGIN invoice-content -->
+      <div class="invoice-content">
+        <!-- BEGIN table-responsive -->
+        <div class="table-responsive">
+          <table class="table table-invoice">
+            <thead>
+              <tr>
+                <th width="80%">ARTIFACTS LIST</th>
+                <th width="20%" class="text-center"></th>
+              </tr>
+            </thead>
+            <tbody>
+              <% workflow.artifacts.each do |artifact| %>
+                <tr>
+                  <td>
+                    <span class="text-dark">
+                      <%= artifact.title %>
+                    </span><br>
+                    <small>
+                      <%= artifact.description %>
+                    </small>
+                  </td>
+                  <td class="text-center align-middle">
+                    <%= link_to url_for(artifact.file), class: "btn btn-sm btn-outline-success" , target: "_blank" ,
+                      download: artifact.file.filename.to_s do %>
+                      <i class="fa fa-download"></i>
+                      <% end %>
+                  </td>
+                </tr>
+                <% end %>
+
+            </tbody>
+          </table>
+        </div>
+        <!-- END table-responsive -->
+        <!-- BEGIN invoice-price -->
+        <div class="invoice-price">
+          <div class="invoice-price-left">
+            <div class="invoice-price-row">
+              <div class="sub-price">
+
+                <div class="row align-items-center">
+                  <div class="col-lg-4 d-flex align-items-center justify-content-center">
+                    <span class="rounded-circle overflow-hidden" style="width:72px; height:72px; background:#f3f3f3">
+                      <%= image_tag(current_user.avatar_url, class: 'img-fluid' ) %>
+                    </span>
+                  </div>
+                  <div class="col-lg-8 mt-3 mt-lg-0">
+                    <div class="fs-5">
+                      <small>About to be started by</small>
+                      <%= current_user.full_name %>
+                    </div>
+                    <div class="small text-dark text-opacity-75">
+                      <%= mail_to(current_user.email, class: 'text-decoration-none' ) %>
+                    </div>
+                    <div class="mt-2">
+                      <span class="badge bg-theme">
+                        <%= current_user.current_role.name %>
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+
+          <%= form_with(model: [@client, @execution], html: {class: 'invoice-price-right m-0 p-0' }, local: true) do |f|
+            %>
+            <%= f.hidden_field :workflow_id, value: Workflow.first.id %>
+              <%= button_tag(type: "submit" , class: 'h-100 w-100 bg-gray-900' ) do %>
+                <i class="fa fa-play fa-lg me-2 text-white"></i>
+                <span class="text-white">Start</span>
+                <% end %>
+                  <% end %>
+        </div>
+        <!-- END invoice-price -->
+      </div>
+      <!-- END invoice-content -->
+    </div>

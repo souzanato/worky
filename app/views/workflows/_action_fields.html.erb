@@ -1,0 +1,19 @@
+<div class="border rounded p-2 mb-2 action" data-workflow-builder-target="action">
+  <div class="row g-2 align-items-center">
+    <div class="col-md-5">
+      <%= f.text_field :title, class: "form-control", placeholder: "Action title" %>
+    </div>
+    <div class="col-md-5">
+      <%= f.text_area :description, rows: 1, class: "form-control", placeholder: "Description" %>
+    </div>
+    <div class="col-md-2 d-flex align-items-center gap-1">
+      <%= f.number_field :order, class: "form-control text-center",
+            data: { "workflow-builder-target": "actionOrder" } %>
+      <div class="btn-group ms-1">
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="workflow-builder#moveActionUp">↑</button>
+        <button type="button" class="btn btn-sm btn-outline-secondary" data-action="workflow-builder#moveActionDown">↓</button>
+        <button type="button" class="btn btn-sm btn-outline-danger" data-action="workflow-builder#removeAction">✕</button>
+      </div>
+    </div>
+  </div>
+</div>

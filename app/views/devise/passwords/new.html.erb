@@ -1,0 +1,26 @@
+<%= form_for(resource,
+      as: resource_name,
+      url: password_path(resource_name),
+      html: { method: :post, class: "fs-13px", novalidate: true },
+      validate: true) do |f| %>
+
+  <%= render "devise/shared/error_messages", resource: resource %>
+
+  <div class="form-floating mt-15px">
+    <%= f.email_field :email,
+          autofocus: true,
+          autocomplete: "email",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.email'),
+          id: "passwordEmail" %>
+    <%= f.label :email, t('activerecord.attributes.user.email'),
+          for: "passwordEmail",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <div class="mb-15px mt-15px">
+    <%= f.submit t('buttons.passwords.send_instructions', default: "Send me reset password instructions"),
+          class: "btn btn-theme d-block h-45px w-100 btn-lg fs-14px",
+          disabled_with: "Please wait..." %>
+  </div>
+<% end %>

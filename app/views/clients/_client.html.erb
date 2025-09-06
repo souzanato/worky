@@ -1,0 +1,5 @@
+<tr id="<%= dom_id(client) %>" class="client-row" data-href="<%= client_path(client) %>">
+  <td class="fw-bold text-center"><%= link_to client.id, client_path(client) %></td>
+  <td><%= link_to client.name, client_path(client) %></td>
+  <td><%= truncate(client.description, length: 80) %></td>
+</tr>

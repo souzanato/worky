@@ -1,0 +1,7 @@
+<!-- app/views/actions/_ai_action_form.html.erb -->
+<fieldset class="mb-3">
+    <div class="mb-3">
+        <%= f.label :ai_model, class: "form-label", data: { step_action_target: "aiModelLabel" } %>
+        <%= f.collection_select :ai_model, Action.ai_models, :code, :name, {prompt: true}, {class: 'form-control', data: { step_action_target: "aiModelSelect" }} %>
+    </div>
+</fieldset>

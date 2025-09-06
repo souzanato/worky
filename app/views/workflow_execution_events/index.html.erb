@@ -1,0 +1,16 @@
+<p style="color: green"><%= notice %></p>
+
+<% content_for :title, "Workflow execution events" %>
+
+<h1>Workflow execution events</h1>
+
+<div id="workflow_execution_events">
+  <% @workflow_execution_events.each do |workflow_execution_event| %>
+    <%= render workflow_execution_event %>
+    <p>
+      <%= link_to "Show this workflow execution event", workflow_execution_event %>
+    </p>
+  <% end %>
+</div>
+
+<%= link_to "New workflow execution event", new_workflow_execution_event_path %>

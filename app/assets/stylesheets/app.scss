@@ -1,0 +1,21 @@
+.app-loader.loaded { opacity: 0; pointer-events: none; display: none !important; }
+
+// Estilos personalizados para ajustar o cabeçalho da modal fullscreen compacta do Bootstrap.
+// Reduz o espaçamento interno do header, define uma borda inferior e ajusta o tamanho e peso da fonte do título.
+// Também modifica o espaçamento do botão de fechar para melhor alinhamento visual.
+// Estilos para modal fullscreen compacta
+.modal-fullscreen.modal-compact .modal-header {
+  flex: 0 0 auto; /* reseta o flex:1 que tá vindo de fora */
+  padding: 0.5rem 1rem;
+  border-bottom: 1px solid #dee2e6;
+  justify-content: space-between; /* garante alinhamento padrão */
+}
+
+.modal-fullscreen.modal-compact .modal-title {
+    font-size: 1rem;
+    font-weight: 500;
+}
+
+.modal-fullscreen.modal-compact .btn-close {
+    margin: -0.25rem -0.25rem -0.25rem auto;
+}

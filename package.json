@@ -1,0 +1,48 @@
+{
+  "name": "app",
+  "private": true,
+  "devDependencies": {
+    "cssnano": "^7.1.0",
+    "esbuild": "^0.25.9"
+  },
+  "scripts": {
+    "build": "esbuild app/javascript/*.* --bundle --sourcemap --format=esm --outdir=app/assets/builds --public-path=/assets  --loader:.js=jsx",
+    "build:css:compile": "sass ./app/assets/stylesheets/application.bootstrap.scss:./app/assets/builds/application.css --no-source-map --load-path=node_modules --load-path=vendor/assets",
+    "build:css:prefix": "postcss ./app/assets/builds/application.css --use autoprefixer --use cssnano --no-map --output ./app/assets/builds/application.css",
+    "build:css": "yarn build:css:compile && yarn build:css:prefix",
+    "watch:css": "nodemon --watch ./app/assets/stylesheets/ --ext scss --exec \"yarn build:css\"",
+    "build:watch": "yarn build --watch"
+  },
+  "dependencies": {
+    "@client-side-validations/client-side-validations": "^0.4.0",
+    "@hotwired/stimulus": "^3.2.2",
+    "@hotwired/turbo-rails": "^8.0.16",
+    "@monaco-editor/react": "^4.7.0",
+    "@popperjs/core": "^2.11.8",
+    "autoprefixer": "^10.4.21",
+    "bootstrap": "^5.3.7",
+    "bootstrap-icons": "^1.13.1",
+    "datatables.net": "^2.3.3",
+    "datatables.net-bs5": "^2.3.3",
+    "datatables.net-buttons": "^3.2.4",
+    "datatables.net-buttons-bs5": "^3.2.4",
+    "datatables.net-responsive-bs5": "^3.0.6",
+    "jquery": "^3.7.1",
+    "jquery-blockui": "^2.7.0",
+    "jquery-ui": "^1.14.1",
+    "js-cookie": "^3.0.5",
+    "monaco-editor": "^0.52.2",
+    "monaco-themes": "^0.4.6",
+    "nodemon": "^3.1.10",
+    "pace-js": "^1.2.4",
+    "perfect-scrollbar": "^1.5.6",
+    "postcss": "^8.5.6",
+    "postcss-cli": "^11.0.1",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "sass": "^1.90.0"
+  },
+  "browserslist": [
+    "defaults"
+  ]
+}

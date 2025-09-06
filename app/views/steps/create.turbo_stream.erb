@@ -1,0 +1,6 @@
+<%= turbo_stream.update "workflow-steps-#{@workflow.id}",
+      partial: "workflows/steps_list",
+      locals: { workflow: @workflow } %>
+<%= turbo_stream.update "workflow-steps-count-#{@workflow.id}" do %>
+  <%= @workflow.steps.count %>
+<% end %>

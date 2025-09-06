@@ -1,0 +1,43 @@
+<%= form_for(resource,
+      as: resource_name,
+      url: password_path(resource_name),
+      html: { method: :put, class: "fs-13px", novalidate: true },
+      validate: true) do |f| %>
+
+  <%= render "devise/shared/error_messages", resource: resource %>
+  <%= f.hidden_field :reset_password_token %>
+
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password,
+          autofocus: true,
+          autocomplete: "new-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.password'),
+          id: "newPassword" %>
+    <%= f.label :password, t('activerecord.attributes.user.password'),
+          for: "newPassword",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+    <% if @minimum_password_length %>
+      <small class="text-muted d-block mt-1">
+        <%= @minimum_password_length %> <%= t('texts.passwords.characters_minimum', default: 'characters minimum') %>
+      </small>
+    <% end %>
+  </div>
+
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password_confirmation,
+          autocomplete: "new-password",
+          class: "form-control h-45px fs-13px",
+          placeholder: t('placeholders.user.password_confirmation'),
+          id: "newPasswordConfirmation" %>
+    <%= f.label :password_confirmation, t('activerecord.attributes.user.password_confirmation'),
+          for: "newPasswordConfirmation",
+          class: "d-flex align-items-center fs-13px text-gray-600" %>
+  </div>
+
+  <div class="mb-15px mt-15px">
+    <%= f.submit t('buttons.passwords.change', default: "Change my password"),
+          class: "btn btn-theme d-block h-45px w-100 btn-lg fs-14px",
+          disabled_with: "Please wait..." %>
+  </div>
+<% end %>

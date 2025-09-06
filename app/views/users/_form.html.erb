@@ -1,0 +1,133 @@
+<%# app/views/users/_form.html.erb %>
+<%= form_with(
+      model: @user,
+      validate: true,                                 # CSV on
+      html: { id: (@user.persisted? ? 'edit-user' : 'new-user'),
+              class: 'fs-13px', novalidate: true },
+      data: { turbo: true }
+    ) do |f| %>
+
+  <% if @user.errors.any? %>
+    <div class="alert alert-danger">
+      <div class="fw-bold mb-2"><%= t(".errors_title", default: "Please fix the errors below") %></div>
+      <ul class="m-0 ps-3">
+        <% @user.errors.full_messages.each do |msg| %><li><%= msg %></li><% end %>
+      </ul>
+    </div>
+  <% end %>
+
+  <!-- Name -->
+  <div class="row gx-3">
+    <div class="col-md-6">
+      <div class="form-floating mt-15px">
+        <%= f.text_field :first_name,
+              placeholder: t('placeholders.user.first_name'),
+              class: 'form-control h-45px fs-13px',
+              autocomplete: 'given-name' %>
+        <%= f.label :first_name,
+              t('activerecord.attributes.user.first_name'),
+              class: 'd-flex align-items-center fs-13px text-gray-600' %>
+      </div>
+    </div>
+
+    <div class="col-md-6">
+      <div class="form-floating mt-15px">
+        <%= f.text_field :last_name,
+              placeholder: t('placeholders.user.last_name'),
+              class: 'form-control h-45px fs-13px',
+              autocomplete: 'family-name' %>
+        <%= f.label :last_name,
+              t('activerecord.attributes.user.last_name'),
+              class: 'd-flex align-items-center fs-13px text-gray-600' %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Email -->
+  <div class="form-floating mt-15px">
+    <%= f.email_field :email,
+          autocomplete: 'email',
+          class: 'form-control h-45px fs-13px',
+          placeholder: t('placeholders.user.email') %>
+    <%= f.label :email,
+          t('activerecord.attributes.user.email'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Password -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password,
+          placeholder: t('placeholders.user.password'),
+          class: 'form-control h-45px fs-13px',
+          autocomplete: 'new-password',
+          validate: { presence: true, confirmation: true } %>
+    <%= f.label :password,
+          t('activerecord.attributes.user.password'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <!-- Password confirmation -->
+  <div class="form-floating mt-15px">
+    <%= f.password_field :password_confirmation,
+          placeholder: t('placeholders.user.password_confirmation'),
+          class: 'form-control h-45px fs-13px',
+          autocomplete: 'new-password',
+          validate: { presence: true } %>
+    <%= f.label :password_confirmation,
+          t('activerecord.attributes.user.password_confirmation'),
+          class: 'd-flex align-items-center fs-13px text-gray-600' %>
+  </div>
+
+  <%# --- AVATAR PICKER ---------------------------------------------------- %>
+<div class="mt-15px">
+  <div class="d-flex align-items-center mb-2">
+    <label class="fs-13px text-gray-600 fw-bold m-0">
+      <%= t('activerecord.attributes.user.avatar') %>
+    </label>
+  </div>
+
+  <div class="row g-2" data-controller="avatar-picker">
+    <%# Lista todos os arquivos de avatar do vendor %>
+    <% avatars = Dir.glob(
+         Rails.root.join('vendor/assets/color-admin/img/user/*.{jpg,jpeg,png,gif,webp}')
+       ).sort.map { |p| File.basename(p) } %>
+
+    <%# fallback caso nada seja encontrado em dev %>
+    <% if avatars.blank?
+         avatars = (1..20).map { |i| "user-#{i}.jpg" }
+       end %>
+
+    <% avatars.each do |file| %>
+      <div class="col-6 col-md-2">
+        <label class="w-100 position-relative cursor-pointer"
+               data-avatar-picker-target="option">
+          <%= f.radio_button :avatar,
+                file,
+                class: "d-none",
+                checked: (@user.avatar.present? ? @user.avatar == file : false),
+                data: { action: "change->avatar-picker#select" } %>
+
+          <div class="ratio ratio-1x1 rounded-2 border d-flex align-items-center justify-content-center"
+               data-avatar-picker-target="box">
+            <%= image_tag "color-admin/img/user/#{file}",
+                  class: "img-fluid rounded-2",
+                  alt: file %>
+          </div>
+
+          <div class="small text-muted mt-1 text-truncate"><%= file %></div>
+        </label>
+      </div>
+    <% end %>
+  </div>
+</div>
+<%# --- /AVATAR PICKER --------------------------------------------------- %>
+
+  <!-- Submit -->
+  <div class="mb-15px mt-15px">
+    <%= f.submit(
+          @user.persisted? ? t('.update', default: 'Update') : t('.create', default: 'Create'),
+          class: 'btn btn-theme d-block w-100 btn-lg h-45px fs-13px',
+          disabled_with: t('.please_wait', default: 'Please wait...')
+        ) %>
+  </div>
+<% end %>

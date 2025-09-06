@@ -1,0 +1,21 @@
+// app/assets/stylesheets/client_side_validations.scss
+
+// Estilo do Rails/CSV envolve o input em .field_with_errors
+.field_with_errors .form-control {
+  border-color: #dc3545; // vermelho bootstrap
+  box-shadow: 0 0 0 0.2rem rgba(220,53,69,.25);
+}
+
+// Mensagem de erro
+.field_with_errors .error,
+label.error {
+  color: #dc3545;   // vermelho
+  font-size: 0.875rem; // ~14px
+  margin-top: 0.25rem;
+  display: block;
+}
+
+// Opcional: destacar o label do campo com erro
+.field_with_errors label {
+  color: #dc3545;
+}

@@ -1,0 +1,30 @@
+<template id="step-template">
+  <div class="card mb-3" data-workflow-builder-target="step">
+    <div class="card-body p-3">
+      <!-- ... botões ... -->
+
+      <div class="row g-2">
+        <div class="col-md-5">
+          <!-- era [NEW_STEP] -->
+          <input type="text" name="workflow[steps_attributes][][title]" class="form-control" placeholder="Title">
+        </div>
+        <div class="col-md-5">
+          <textarea name="workflow[steps_attributes][][description]" rows="1" class="form-control" placeholder="Description"></textarea>
+        </div>
+        <div class="col-md-2">
+          <input type="number" name="workflow[steps_attributes][][order]" class="form-control text-center" data-workflow-builder-target="stepOrder">
+        </div>
+      </div>
+
+      <div class="mt-3">
+        <div class="d-flex align-items-center mb-2">
+          <span class="fw-bold">Actions</span>
+          <button class="btn btn-sm btn-outline-success ms-auto" type="button" data-action="workflow-builder#addAction">
+            + Add Action
+          </button>
+        </div>
+        <div data-workflow-builder-target="actions"></div>
+      </div>
+    </div>
+  </div>
+</template>

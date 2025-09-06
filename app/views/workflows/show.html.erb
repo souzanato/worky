@@ -1,0 +1,107 @@
+<% breadcrumb :workflow, @workflow %>
+
+<div class="mb-3 d-md-flex fw-bold">
+  <div class="mt-2 mt-md-0">
+    <%= link_to workflows_path, class: "text-decoration-none text-dark" do %>
+      <i class="fa fa-arrow-left fa-fw me-1 text-dark text-opacity-50"></i> <%= t(".back", default: "Back") %>
+    <% end %>
+  </div>
+  <div class="ms-md-4 mt-2 mt-md-0">
+    <%= link_to edit_workflow_path(@workflow), class: "text-decoration-none text-dark" do %>
+      <i class="fa fa-pen fa-fw me-1 text-dark text-opacity-50"></i> <%= t(".edit", default: "Edit") %>
+    <% end %>
+  </div>
+  <div class="ms-md-4 mt-2 mt-md-0">
+    <%= link_to workflow_path(@workflow),
+                data: { turbo_method: :delete, turbo_confirm: t(".confirm_delete", default: "Are you sure?") },
+                class: "text-decoration-none text-danger" do %>
+      <i class="fa fa-trash fa-fw me-1 text-danger text-opacity-75"></i> <%= t(".delete", default: "Delete") %>
+    <% end %>
+  </div>
+</div>
+
+<div class="row gx-4">
+  <div class="col-xl-8 mb-xl-0 mb-4">
+    <!-- Nav tabs (fora do card) -->
+    <ul class="nav nav-tabs nav-tabs-inverse" role="tablist">
+      <li class="nav-item" role="presentation">
+        <a href="#general-tab" data-bs-toggle="tab" class="nav-link active" aria-selected="true" role="tab">
+          <i class="fa fa-fw fa-lg fa-cog"></i> <span class="d-none d-xl-inline">General</span>
+        </a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a href="#artifacts-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+          <i class="fa fa-fw fa-lg fa-paperclip"></i> <span class="d-none d-xl-inline">Artifacts</span>
+        </a>
+      </li>
+      <li class="nav-item" role="presentation">
+        <a href="#steps-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+          <i class="fa fa-fw fa-lg fa-stairs"></i> <span class="d-none d-xl-inline">Steps & Actions</span>
+        </a>
+      </li>
+    </ul>
+
+    <!-- Tab content -->
+    <div class="tab-content p-3 border border-top-0 bg-white">
+      <!-- General -->
+      <div class="tab-pane fade show active" id="general-tab" role="tabpanel">
+        <div class="mb-3">
+          <div class="small text-dark text-opacity-50"><%= t(".title", default: "Title") %></div>
+          <div><%= @workflow.title %></div>
+        </div>
+        <div class="mb-3">
+          <div class="small text-dark text-opacity-50"><%= t(".description", default: "Description") %></div>
+          <div><%= simple_format(@workflow.description) %></div>
+        </div>
+        <hr />
+        <div class="row">
+          <div class="col-md-6">
+            <div class="small text-dark text-opacity-50"><%= t(".created_at", default: "Created at") %></div>
+            <div><%= l @workflow.created_at, format: :short %></div>
+          </div>
+          <div class="col-md-6">
+            <div class="small text-dark text-opacity-50"><%= t(".updated_at", default: "Updated at") %></div>
+            <div><%= l @workflow.updated_at, format: :short %></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Artifacts -->
+      <div class="tab-pane fade" id="artifacts-tab" role="tabpanel">
+        <%= render "shared/artifacts", resource: @workflow %>
+      </div>
+
+      <!-- Steps & Actions -->
+      <div class="tab-pane fade" id="steps-tab" role="tabpanel">
+        <div class="d-flex align-items-center mb-3">
+          <h6 class="m-0"><%= t(".steps", default: "Steps") %></h6>
+          <span class="badge bg-secondary ms-2"><%= @workflow.steps.size %></span>
+          <%= link_to t(".add_step", default: "Add Step"),
+                      new_workflow_step_path(@workflow),
+                      data: { turbo_frame: "modal" },
+                      class: "btn btn-sm btn-outline-primary ms-auto" %>
+        </div>
+        <%= render "workflows/steps_list", workflow: @workflow %>
+      </div>
+    </div>
+  </div>
+
+  <!-- Sidebar metadata -->
+  <div class="col-xl-4">
+    <div class="card border-0 mb-4">
+      <div class="card-header bg-none p-3 h6 m-0 d-flex align-items-center">
+        <i class="fa fa-circle-info fa-lg me-2 text-gray text-opacity-50"></i>
+        <%= t(".metadata", default: "Metadata") %>
+      </div>
+      <div class="card-body fw-bold">
+        <div class="small text-dark text-opacity-50"><%= t(".workflow_id", default: "Workflow ID") %></div>
+        <div class="mb-3"><%= @workflow.id %></div>
+        <div class="small text-dark text-opacity-50"><%= t(".counts", default: "Counts") %></div>
+        <div class="mb-3">
+          <%= t(".steps_count", default: "Steps") %>: <%= @workflow.steps.size %> ·
+          <%= t(".actions_count", default: "Actions") %>: <%= @workflow.steps.joins(:actions).count %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

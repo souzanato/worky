@@ -1,0 +1,46 @@
+<% breadcrumb :users %>
+
+<%# título da página (usa o estilo do tema) %>
+<h1 class="page-header">
+  <%= t(".title", default: "Users") %>
+  <small><%= t(".subtitle", default: "Manage application users") %></small>
+</h1>
+
+<div class="panel panel-inverse" data-controller="users">
+  <div class="panel-heading">
+    <h4 class="panel-title"><%= t(".table_title", default: "Users") %></h4>
+    <div class="panel-heading-btn">
+      <%# botões padrão do Color Admin %>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-default" data-toggle="panel-expand"><i class="fa fa-expand"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-success" data-toggle="panel-reload"><i class="fa fa-redo"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-warning" data-toggle="panel-collapse"><i class="fa fa-minus"></i></a>
+      <a href="javascript:;" class="btn btn-xs btn-icon btn-danger" data-toggle="panel-remove"><i class="fa fa-times"></i></a>
+    </div>
+  </div>
+
+  <div class="panel-body">
+    <div class="d-flex mb-3">
+      <div class="ms-auto">
+        <% if can?(:create, User) %>
+          <%= link_to t(".new", default: "New User"),
+                      new_user_path,
+                      class: "btn btn-theme btn-sm" %>
+        <% end %>
+      </div>
+    </div>
+
+    <table id="users-table" class="table table-hover table-bordered align-middle text-nowrap" data-controller="data-table">
+      <thead>
+        <tr>
+          <th class="text-nowrap" width="1%">#</th>
+          <th class="text-nowrap">Name</th>
+          <th class="text-nowrap">Email</th>
+          <th class="text-nowrap">Confirmed</th>
+        </tr>
+      </thead>
+      <tbody id="users">
+        <%= render @users %>
+      </tbody>
+    </table>
+  </div>
+</div>

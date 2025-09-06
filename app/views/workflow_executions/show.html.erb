@@ -1,0 +1,244 @@
+<% breadcrumb :workflow_execution, @execution %>
+<h1 class="h4 mb-3">
+  Workflow Execution <%= @execution.id %> —
+    <span class="text-muted">
+      <%= @execution.workflow.title %>
+    </span>
+</h1>
+
+<div class="container-fluid mb-3 shadow-sm">
+  <div class="row bg-white">
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag("workflow.jpg", class: 'img-fluid' ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Workflow</small><br />
+            <strong>
+              <%= @execution.workflow.title %>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= link_to "#{WorkflowExecution.where(client_id: @execution.client_id, workflow_id: @execution.workflow_id).count} executions for this Client", 'javascript:;', class: 'text-decoration-none' %>
+          </div>
+
+          <div class="small text-dark text-opacity-75">
+            <%= @execution.workflow.description %>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag("client.png", class: "img-fluid" ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Client</small><br />
+            <strong>
+              <%= @execution.client.name %><br/>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= mail_to(@execution.client.email, class: 'text-decoration-none' ) %>
+          </div>
+          <div class="small text-dark text-opacity-75">
+            <%= @execution.client.description %>
+              
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-4 p-3">
+      <div class="row">
+        <div class="col-lg-3 d-flex justify-content-center">
+          <span class="rounded-circle overflow-hidden d-flex align-items-start justify-content-center" style="width:72px; height:72px; background:#f3f3f3">
+            <%= image_tag(current_user.avatar_url, class: 'img-fluid' ) %>
+          </span>
+        </div>
+        <div class="col-lg-8 mt-3 mt-lg-0">
+          <div class="fs-5">
+            <small>Workflow started by</small><br />
+            <strong>
+              <%= @execution.user.first_name %>
+            </strong>
+          </div>
+          <div class="small text-dark text-opacity-75 mb-2">
+            <%= mail_to(@execution.user.email, class: 'text-decoration-none' ) %>
+          </div>
+          <div class="small text-dark text-opacity-75">
+            <%= @execution.started_finished_message %>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row">
+  <!-- Coluna esquerda: completed steps -->
+  <div class="col-md-2">
+    <div class="list-group mb-3">
+      <div class="list-group-item active">Completed Steps</div>
+      <% @execution.workflow.steps.order(:order).each do |step| %>
+        <% if step.actions.all? { |a| @execution.events.exists?(action_id: a.id) } %>
+          <div class="list-group-item small">
+            <i class="fa fa-check text-success me-1"></i>
+            <%= step.title %>
+          </div>
+          <% end %>
+            <% end %>
+    </div>
+  </div>
+
+  <!-- Coluna central: step atual + action atual -->
+  <div class="col-md-8">
+    <% current_step=@execution.current_action&.step %>
+      <% if current_step %>
+        <div class="card mb-3">
+          <div class="card-header">
+            <strong>Step: <%= current_step.title %></strong>
+            <% total=current_step.actions.count %>
+              <% done=@execution.events.where(action_id: current_step.actions.ids).count %>
+                <span class="badge bg-secondary ms-2">
+                  <%= "#{done}/#{total} actions completed" %>
+                </span>
+          </div>
+          <div class="card-body">
+            <% current_step.actions.order(:order).each do |action| %>
+              <div class="mb-3 p-2 border rounded <%= 'bg-light' unless action == @execution.current_action %>">
+                <strong>
+                  <%= action.title %>
+                </strong>
+
+                <% if @execution.events.exists?(action_id: action.id) %>
+                  <span class="badge bg-success ms-2">done</span>
+
+                  <% elsif action==@execution.current_action %>
+                    <!-- Form para criar WorkflowExecutionEvent -->
+                    <%= form_with(model: [@execution.client, @execution, WorkflowExecutionEvent.new], html: {data:
+                      {controller: 'workflow-execution-event' , workflow_execution_event_workflow_execution_value:
+                      @execution.to_json, workflow_execution_event_action_value: action.to_json(include: [:ai_action,
+                      :step])}}, local: true) do |f| %>
+                      <%= f.hidden_field :action_id, value: action.id %>
+
+                        <!-- Input com Monaco -->
+                        <div class="mb-3">
+                          <%= f.label :input_data, "Input" , class: "form-label" %>
+                            <%= f.hidden_field :input_data, value: action.content %>
+
+                              <div data-controller="monaco" data-monaco-initial-value="<%= action.content %>"
+                                data-monaco-language-value="markdown" data-monaco-height-value="400px"
+                                data-monaco-hidden-field-id-value="workflow_execution_event_input_data"
+                                data-workflow-execution-event-target="monacoEditor">
+                              </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between">
+                          <%= f.submit "Skip" , name: "commit" , value: "Skip" , class: "btn btn-warning" %>
+                            <%= f.submit "Next" , name: "commit" , value: "Next" , class: "btn btn-success" %>
+                              <%= f.submit "Abort" , name: "commit" , value: "Abort" , class: "btn btn-danger" %>
+                        </div>
+                        <% end %>
+
+                          <% else %>
+                            <span class="badge bg-light text-muted ms-2">up next</span>
+                            <% end %>
+              </div>
+              <% end %>
+          </div>
+        </div>
+        <% else %>
+          <div class="alert alert-warning">No current step/action defined for this execution.</div>
+          <% end %>
+  </div>
+
+  <!-- Coluna direita: artefatos -->
+  <div class="col-md-2">
+    <div class="card">
+      <div class="card-header">Artifacts</div>
+      <div class="list-group list-group-flush">
+        <% @execution.artifacts.order(:created_at).each do |artifact| %>
+
+          <div class="list-group-item d-flex justify-content-between align-items-center">
+            <div>
+              <i class="fa fa-file-alt me-2 text-primary"></i>
+              <%= artifact.clean_title.presence || artifact.code %>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+              <!-- Editar -->
+              <a href="#" data-bs-toggle="modal" data-bs-target="#artifactModal-<%= artifact.id %>" class="text-muted"
+                title="Edit">
+                <i class="fa fa-pen"></i>
+              </a>
+
+              <!-- Download -->
+              <% if artifact.file.attached? %>
+                <%= link_to download_workflow_execution_artifact_path(@execution, artifact), class: "text-muted" ,
+                  title: "Download" do %>
+                  <i class="fa fa-download"></i>
+                  <% end %>
+                    <% else %>
+                      <i class="fa fa-ban text-muted" title="No file"></i>
+                      <% end %>
+            </div>
+          </div>
+
+
+          <!-- Modal -->
+          <div class="modal" id="artifactModal-<%= artifact.id %>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-fullscreen modal-dialog-centered">
+              <div class="modal-content">
+                <div class="modal-header">
+                  <h5 class="modal-title">Edit Artifact: <%= artifact.title.presence || artifact.code %>
+                  </h5>
+                  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                  <%= form_with(model: [@execution, artifact], local: true) do |f| %>
+                    <div class="mb-3">
+                      <%= f.label :title, class: "form-label" %>
+                        <%= f.text_field :title, class: "form-control" %>
+                    </div>
+                    <div class="mb-3">
+                      <%= f.label :content, class: "form-label" %>
+                        <%= f.text_area :content, rows: 6, class: "form-control d-none" %>
+                          <div data-controller="monaco" data-monaco-initial-value="<%= artifact.content %>"
+                            data-monaco-language-value="markdown" data-monaco-height-value="400px"
+                            data-monaco-hidden-field-id-value="artifact_content"
+                            data-workflow-execution-event-target="monacoEditor">
+                          </div>
+
+                    </div>
+                    <div class="mb-3">
+                      <%= f.label :file, class: "form-label" %>
+                        <%= f.file_field :file, class: "form-control" %>
+                          <% if artifact.file.attached? %>
+                            <p class="small text-muted mt-1">Current: <%= artifact.file.filename.to_s %>
+                            </p>
+                            <% end %>
+                    </div>
+                    <div class="text-end">
+                      <%= f.submit "Save" , class: "btn btn-success" %>
+                    </div>
+                    <% end %>
+                </div>
+              </div>
+            </div>
+          </div>
+          <!-- /Modal -->
+          <% end %>
+      </div>
+    </div>
+  </div>
+</div>

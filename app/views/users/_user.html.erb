@@ -1,0 +1,31 @@
+<!-- app/views/users/_user.html.erb -->
+<tr id="<%= dom_id(user) %>" class="user-row" data-href="<%= user_path(user) %>">
+  <td class="fw-bold text-center"><%= link_to user.id, user_path(user) %></td>
+
+  <td>
+    <%= link_to [user.first_name, user.last_name].compact.join(' '), user_path(user) %>
+  </td>
+
+  <td>
+    <%= mail_to user.email, user.email, class: "text-decoration-none" %>
+  </td>
+
+  <td class="text-center">
+    
+    <% if user == current_user %>
+        <%= link_to(
+            (user.confirmed? ? "YES" : "NO"),
+            'javascript:;',
+            class: "badge bg-muted"
+        ) %>                
+    <% else %>
+        <%= link_to(
+            (user.confirmed? ? "YES" : "NO"),
+            user_path(user, toggle_confirmation: true),
+            data: { turbo_method: :patch },
+            class: "badge #{user.confirmed? ? 'bg-success' : 'bg-danger'}"
+        ) %>        
+    <% end %>
+    
+  </td>
+</tr>

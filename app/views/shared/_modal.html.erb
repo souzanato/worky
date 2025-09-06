@@ -1,0 +1,18 @@
+<turbo-frame id="modal">
+  <!-- tirei o 'fade' e adicionei modal-no-anim (opcional) -->
+  <div class="modal modal-no-anim" tabindex="-1"
+       data-controller="modal"
+       data-action="turbo:submit-end->modal#closeIfSuccessful">
+    <div class="modal-dialog <%= local_assigns[:size] || 'modal-xl' %>">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><%= local_assigns[:title] %></h5>
+          <button type="button" class="btn-close" data-action="modal#hide"></button>
+        </div>
+        <div class="modal-body bg-body">
+          <%= yield %>
+        </div>
+      </div>
+    </div>
+  </div>
+</turbo-frame>

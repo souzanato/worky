@@ -1,0 +1,9 @@
+tr.user-row {
+  cursor: pointer;
+}
+
+.avatar-selected {
+  border: 5px solid var(--bs-primary) !important;
+  outline: 3px solid white !important; /* separa da imagem */
+  outline-offset: -6px; /* cola no border */
+}

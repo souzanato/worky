@@ -1,0 +1,42 @@
+<% breadcrumb :workflows %>
+
+<h1 class="page-header">
+  <%= t(".title", default: "Workflows") %>
+  <small><%= t(".subtitle", default: "Manage workflows") %></small>
+</h1>
+
+<div class="d-flex mb-3">
+  <div class="ms-auto">
+    <%= link_to t(".new", default: "New Workflow"), new_workflow_path, class: "btn btn-theme btn-sm" %>
+  </div>
+</div>
+
+<div class="card border-0">
+  <div class="card-body p-0">
+    <table class="table table-hover align-middle m-0">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th><%= t(".title", default: "Title") %></th>
+          <th><%= t(".steps", default: "Steps") %></th>
+          <th class="text-end"><%= t(".actions", default: "Actions") %></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% @workflows.each do |wf| %>
+          <tr>
+            <td class="fw-bold"><%= wf.id %></td>
+            <td><%= link_to wf.title, wf %></td>
+            <td><%= wf.steps.count %></td>
+            <td class="text-end">
+              <%= link_to t(".edit", default: "Edit"), edit_workflow_path(wf), class: "btn btn-outline-secondary btn-sm" %>
+              <%= link_to t(".delete", default: "Delete"), workflow_path(wf),
+                          data: { turbo_method: :delete, turbo_confirm: t(".confirm_delete", default: "Are you sure?") },
+                          class: "btn btn-outline-danger btn-sm" %>
+            </td>
+          </tr>
+        <% end %>
+      </tbody>
+    </table>
+  </div>
+</div>

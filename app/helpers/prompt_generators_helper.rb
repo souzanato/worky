@@ -1,0 +1,2 @@
+module PromptGeneratorsHelper
+end

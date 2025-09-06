@@ -1,0 +1,4 @@
+<%= turbo_stream.update "artifacts-list-#{@resource.class.name}-#{@resource.id}",
+      partial: "artifacts/list",
+      locals: { resource: @resource.reload } %>
+<%= turbo_stream.update "modal", "" %>
