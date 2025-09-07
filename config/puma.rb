@@ -9,11 +9,12 @@ threads threads_count, threads_count
 
 preload_app!
 
-rackup      DefaultRackup
 port        ENV.fetch("PORT") { 3000 }
 environment ENV.fetch("RAILS_ENV") { "production" }
 
 on_worker_boot do
-  # Reconeção pro ActiveRecord
+  # Reconexão pro ActiveRecord
   ActiveRecord::Base.establish_connection if defined?(ActiveRecord)
 end
+
+plugin :tmp_restart
