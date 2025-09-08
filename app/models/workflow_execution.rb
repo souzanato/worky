@@ -33,6 +33,9 @@ class WorkflowExecution < ApplicationRecord
     end
   end
 
+  def action_artifact(action)
+    self.artifacts.find_by(title: "#{action.artifact_name} (EXECUTION ##{self.id})")
+  end
 
   # Helpers
   def start!

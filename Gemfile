@@ -94,3 +94,5 @@ gem "httparty", "~> 0.22.0"
 gem "paper_trail", "~> 16.0"
 
 gem "meta-tags", "~> 2.22"
+
+gem "redcarpet", "~> 3.6"

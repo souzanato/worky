@@ -88,15 +88,30 @@
   <!-- Coluna esquerda: completed steps -->
   <div class="col-md-2">
     <div class="list-group mb-3">
-      <div class="list-group-item active">Completed Steps</div>
+      <div class="list-group-item active">Steps</div>
       <% @execution.workflow.steps.order(:order).each do |step| %>
         <% if step.actions.all? { |a| @execution.events.exists?(action_id: a.id) } %>
           <div class="list-group-item small">
             <i class="fa fa-check text-success me-1"></i>
             <%= step.title %>
           </div>
+        <% else %>
+          
+          <% if step.id == @execution.current_action.step_id %>
+            <div class="list-group-item small active">
+              <i class="fa-solid fa-arrow-right me-1"></i>
+              <%= step.title %>
+            </div>            
+          <% else %>
+            <div class="list-group-item small text-muted">
+              <i class="fa-solid fa-clock-rotate-left"></i>
+              <%= step.title %>
+            </div>            
           <% end %>
-            <% end %>
+          
+
+        <% end %>
+      <% end %>
     </div>
   </div>
 
@@ -108,53 +123,129 @@
           <div class="card-header">
             <strong>Step: <%= current_step.title %></strong>
             <% total=current_step.actions.count %>
-              <% done=@execution.events.where(action_id: current_step.actions.ids).count %>
+              <% done= @execution.events.where(action_id: current_step.actions.ids, status: 1).count %>
                 <span class="badge bg-secondary ms-2">
                   <%= "#{done}/#{total} actions completed" %>
                 </span>
           </div>
           <div class="card-body">
             <% current_step.actions.order(:order).each do |action| %>
-              <div class="mb-3 p-2 border rounded <%= 'bg-light' unless action == @execution.current_action %>">
-                <strong>
+              
+              <div class="mb-3 p-2 <%= ' border rounded bg-light' unless action == @execution.current_action %>">
+
+
+                <% if @execution.events.where(action_id: action.id, status: 1).any? %>
+                  <span class="badge bg-success ms-2">done</span>
+
+                <% elsif action==@execution.current_action %>
+
+
+
+                  <!-- Nav tabs (fora do card) -->
+                  <ul class="nav nav-tabs nav-tabs-inverse" role="tablist">
+                    <li class="nav-item" role="presentation">
+                      <a href="#general-tab" data-bs-toggle="tab" class="nav-link active" aria-selected="true" role="tab" style="    border-left: 1px solid #ced4da; border-top: 1px solid #ced4da;">
+                        <%= action.title %>
+                      </a>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                      <a href="#artifacts-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+                        Artifact
+                      </a>
+                    </li>
+                  </ul>
+
+                  <!-- Tab content -->
+                <%= form_with(model: [@execution.client, @execution, WorkflowExecutionEvent.new], html: {data:
+                  {controller: 'workflow-execution-event' , workflow_execution_event_workflow_execution_value:
+                  @execution.to_json, workflow_execution_event_action_value: action.to_json(include: [:ai_action,
+                  :step])}}, local: true) do |f| %>
+                  <div class="tab-content p-3 border border-top-0 bg-white">
+                    <!-- Form para criar WorkflowExecutionEvent -->
+
+                      <!-- General -->
+                      <div class="tab-pane fade show active" id="general-tab" role="tabpanel">
+                      
+                                          <%= f.hidden_field :action_id, value: action.id %>
+
+                                          <!-- Input com Monaco -->
+                                          <div class="mb-3">
+                                            <%= f.label :input_data, action.description.html_safe, class: "form-label" %>
+                                            <%= f.hidden_field :input_data, value: action.content %>
+
+                                            <div data-controller="monaco" data-monaco-initial-value="<%= action.content %>"
+                                              data-monaco-language-value="markdown" data-monaco-height-value="400px"
+                                              data-monaco-hidden-field-id-value="workflow_execution_event_input_data"
+                                              data-workflow-execution-event-target="monacoEditor">
+                                            </div>
+                                          </div>
+
+
+
+                      </div>
+
+                      <!-- Artifacts -->
+                      <div class="tab-pane fade" id="artifacts-tab" role="tabpanel" style="max-height: 45em; overflow-y: auto; background: #eee; border-radius: .5em; padding: 1em;">
+                        <% artifact = @execution.action_artifact(action) %>
+                        <% if artifact %>
+
+                        <%= markdown_to_html(artifact.content) %>
+                        
+                        <% end %>
+                      </div>
+
+                  </div>
+                      <div class="row mt-3">
+                        <div class="col-6">
+                          <%= button_tag type: :submit, class: 'btn btn-secondary', name: "workflow_execution_event[step_action]", value: "prompt_it" do %>
+                            <i class="fa-solid fa-reply"></i>
+                            <% if has_artifact?(action) %>
+                              Prompt it again
+                            <% else %>
+                              Prompt it
+                            <% end %>
+                          <% end %>                              
+                          
+                        </div>
+
+                        <div class="col-6 d-flex justify-content-end">
+                          <%= button_tag type: :submit, class: 'btn btn-primary', name: "workflow_execution_event[step_action]", value: "next" do %>
+                            Next
+                            <i class="fa-solid fa-arrow-right-long"></i>
+                          <% end %>
+                        </div>
+                      </div>
+
+                  <% end %>
+
+
+
+
+                <% else %>
+                                <strong>
                   <%= action.title %>
                 </strong>
 
-                <% if @execution.events.exists?(action_id: action.id) %>
-                  <span class="badge bg-success ms-2">done</span>
-
-                  <% elsif action==@execution.current_action %>
-                    <!-- Form para criar WorkflowExecutionEvent -->
-                    <%= form_with(model: [@execution.client, @execution, WorkflowExecutionEvent.new], html: {data:
-                      {controller: 'workflow-execution-event' , workflow_execution_event_workflow_execution_value:
-                      @execution.to_json, workflow_execution_event_action_value: action.to_json(include: [:ai_action,
-                      :step])}}, local: true) do |f| %>
-                      <%= f.hidden_field :action_id, value: action.id %>
-
-                        <!-- Input com Monaco -->
-                        <div class="mb-3">
-                          <%= f.label :input_data, "Input" , class: "form-label" %>
-                            <%= f.hidden_field :input_data, value: action.content %>
-
-                              <div data-controller="monaco" data-monaco-initial-value="<%= action.content %>"
-                                data-monaco-language-value="markdown" data-monaco-height-value="400px"
-                                data-monaco-hidden-field-id-value="workflow_execution_event_input_data"
-                                data-workflow-execution-event-target="monacoEditor">
-                              </div>
-                        </div>
-
-                        <div class="d-flex justify-content-between">
-                          <%= f.submit "Skip" , name: "commit" , value: "Skip" , class: "btn btn-warning" %>
-                            <%= f.submit "Next" , name: "commit" , value: "Next" , class: "btn btn-success" %>
-                              <%= f.submit "Abort" , name: "commit" , value: "Abort" , class: "btn btn-danger" %>
-                        </div>
-                        <% end %>
-
-                          <% else %>
-                            <span class="badge bg-light text-muted ms-2">up next</span>
-                            <% end %>
+                  <span class="badge bg-light text-muted ms-2">up next</span>
+                <% end %>
               </div>
-              <% end %>
+            
+            
+            
+            
+            
+            
+            
+              
+            
+            
+            
+            
+            
+            
+            
+            
+            <% end %>
           </div>
         </div>
         <% else %>

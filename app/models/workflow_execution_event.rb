@@ -10,6 +10,8 @@ class WorkflowExecutionEvent < ApplicationRecord
   store_accessor :input_data
   store_accessor :output_data
 
+  attr_accessor :step_action
+
   def client(default_attribute = :name)
     workflow_execution&.client&.send(default_attribute)
   end
@@ -25,12 +27,16 @@ class WorkflowExecutionEvent < ApplicationRecord
 
   def create_artifact
     unless self.action.has_ai_action
-      Artifact.create(
+      artifact = Artifact.find_or_initialize_by(
         title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})",
-        description: self.action.description,
-        content: self.input_data,
         resource_type: "WorkflowExecution",
-        resource_id: self.workflow_execution.id)
+        resource_id: self.workflow_execution.id
+      )
+
+      artifact.update!(
+        description: self.action.description,
+        content: self.input_data
+      )
     else
       pinecone_results = set_rag_content
       strip_rag_content!
@@ -38,12 +44,16 @@ class WorkflowExecutionEvent < ApplicationRecord
       ai_client = Action.find_ai_model_by_code(self.action.ai_action.ai_model).klass.new
       result = ai_client.ask(prompt)
 
-      Artifact.create(
+      artifact = Artifact.find_or_initialize_by(
         title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})",
-        description: self.action.description,
-        content: result[:text],
         resource_type: "WorkflowExecution",
-        resource_id: self.workflow_execution.id)
+        resource_id: self.workflow_execution.id
+      )
+
+      artifact.update!(
+        description: self.action.description,
+        content: result[:text]
+      )
     end
   end
 

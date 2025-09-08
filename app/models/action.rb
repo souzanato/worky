@@ -16,7 +16,6 @@ class Action < ApplicationRecord
 
   def prompt_generator(workflow_execution)
     self.workflow_execution = workflow_execution
-    byebug
     pinecones_results = get_pinecone_results
     # Remove o bloco completo (incluindo START e END) do content
     self.content = content.gsub(/<<SEARCHER>>(.+?)<<SEARCHER>>/m, "").strip
