@@ -87,7 +87,7 @@ gem "hirb", "~> 0.7.3"
 
 gem "ruby-openai", "~> 8.2"
 
-gem "anthropic", "~> 1.7"
+gem "anthropic", "~> 1.8"
 
 gem "httparty", "~> 0.22.0"
 
