@@ -92,3 +92,5 @@ gem "anthropic", "~> 1.7"
 gem "httparty", "~> 0.22.0"
 
 gem "paper_trail", "~> 16.0"
+
+gem "meta-tags", "~> 2.22"

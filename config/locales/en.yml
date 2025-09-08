@@ -1,4 +1,102 @@
 en:
+  titles:
+
+    home:
+      index: "Home | BAIA"
+
+    users:
+      index: "Users | BAIA"
+      show: "User Details | BAIA"
+      new: "New User | BAIA"
+      edit: "Edit User | BAIA"
+      create: "Create User | BAIA"
+      update: "Update User | BAIA"
+      destroy: "Delete User | BAIA"
+
+    workflows:
+      index: "Workflows | BAIA"
+      show: "Workflow Details | BAIA"
+      new: "New Workflow | BAIA"
+      edit: "Edit Workflow | BAIA"
+      create: "Create Workflow | BAIA"
+      update: "Update Workflow | BAIA"
+      destroy: "Delete Workflow | BAIA"
+
+    steps:
+      new: "New Step | BAIA"
+      edit: "Edit Step | BAIA"
+      create: "Create Step | BAIA"
+      update: "Update Step | BAIA"
+      destroy: "Delete Step | BAIA"
+      move_up: "Move Step Up | BAIA"
+      move_down: "Move Step Down | BAIA"
+
+    actions:
+      new: "New Action | BAIA"
+      edit: "Edit Action | BAIA"
+      create: "Create Action | BAIA"
+      update: "Update Action | BAIA"
+      destroy: "Delete Action | BAIA"
+      move_up: "Move Action Up | BAIA"
+      move_down: "Move Action Down | BAIA"
+
+    artifacts:
+      new: "New Artifact | BAIA"
+      edit: "Edit Artifact | BAIA"
+      create: "Create Artifact | BAIA"
+      update: "Update Artifact | BAIA"
+      destroy: "Delete Artifact | BAIA"
+      download: "Download Artifact | BAIA"
+
+    clients:
+      index: "Clients | BAIA"
+      show: "Client Details | BAIA"
+      new: "New Client | BAIA"
+      edit: "Edit Client | BAIA"
+      create: "Create Client | BAIA"
+      update: "Update Client | BAIA"
+      destroy: "Delete Client | BAIA"
+
+    workflow_executions:
+      index: "Workflow Executions | BAIA"
+      show: "Workflow Execution Details | BAIA"
+      new: "New Workflow Execution | BAIA"
+      create: "Create Workflow Execution | BAIA"
+      update: "Update Workflow Execution | BAIA"
+      destroy: "Delete Workflow Execution | BAIA"
+
+    workflow_execution_events:
+      create: "Workflow Execution Event | BAIA"
+
+    prompt_generators:
+      create: "Prompt Generator | BAIA"
+
+    auth/sessions:
+      new: "Sign In | BAIA"
+      create: "Sign In | BAIA"
+      destroy: "Sign Out | BAIA"
+
+    auth/registrations:
+      new: "Sign Up | BAIA"
+      create: "Create Account | BAIA"
+      edit: "Edit Account | BAIA"
+      update: "Update Account | BAIA"
+      destroy: "Cancel Account | BAIA"
+
+    auth/passwords:
+      new: "Forgot Password | BAIA"
+      create: "Send Reset Instructions | BAIA"
+      edit: "Change Password | BAIA"
+      update: "Update Password | BAIA"
+
+    auth/confirmations:
+      new: "Resend Confirmation | BAIA"
+      create: "Send Confirmation | BAIA"
+
+    auth/unlocks:
+      new: "Resend Unlock Instructions | BAIA"
+      create: "Send Unlock Instructions | BAIA"
+
   routes:
     auth: "auth"
     devise_user: "users"

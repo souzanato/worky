@@ -1,3 +1,10 @@
+ceo:
+  site_name: "Branding AI Automation"
+  title: "BAIA"
+  description: "Quick research, automated flow, and deep knowledge in less time."
+  image: "default-share.png"
+  welcome_message: "Welcome | BAIA"
+  canonical: "https://baia.brandimage.pt"
 apis:
   pinecone:
     metric: "cosine"

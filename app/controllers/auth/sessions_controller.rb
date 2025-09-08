@@ -5,9 +5,16 @@ class Auth::SessionsController < Devise::SessionsController
   # before_action :configure_sign_in_params, only: [:create]
 
   # GET /resource/sign_in
-  # def new
-  #   super
-  # end
+  def new
+    prepare_meta_tags(
+      title: Settings.reload!.ceo.welcome_message,
+      description: Settings.reload!.ceo.description,
+      image: Settings.reload!.ceo.image,
+      canonical: Settings.reload!.ceo.canonical
+    )
+
+    super
+  end
 
   # POST /resource/sign_in
   # def create
