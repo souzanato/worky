@@ -1,5 +1,5 @@
 #!/bin/bash
-set -euo pipefail
+set -eo pipefail   # mantém erro e pipefail, mas sem -u
 
 APP_DIR="/opt/worky"
 RVM_PATH="/home/renato/.rvm/scripts/rvm"
