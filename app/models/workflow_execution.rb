@@ -84,7 +84,7 @@ class WorkflowExecution < ApplicationRecord
     end
 
     Rails.logger.info "🔍 Pinecone Filter: #{filter.to_json}"
-
+    byebug
     searcher = Pinecone::Searcher.new
     results = searcher.search(query, top_k: top_k, filter: filter)
     results = results.select { |r| r[:score] >= min_score } if min_score

@@ -1,4 +1,3 @@
-# lib/ai/model/perplexity.rb
 require "httparty"
 require "json"
 
@@ -6,6 +5,7 @@ module Ai
   module Model
     class Perplexity
       include HTTParty
+      include Ai::Model::Logging
 
       base_uri "https://api.perplexity.ai"
       default_timeout 300
@@ -16,7 +16,7 @@ module Ai
                      model: "sonar-pro",
                      temperature: 0.7,
                      max_tokens: 16384,
-                     append_references: true) # 👈 novo
+                     append_references: true)
         @api_key = api_key
         @model = model
         @temperature = temperature
@@ -34,86 +34,74 @@ module Ai
           timeout: 300,
           verify: true
         }
+
+        log_info(__method__, "Inicializando Perplexity com modelo=#{@model}, max_tokens=#{@max_tokens}, append_refs=#{@append_references}")
       end
 
-      # ---------- PÚBLICOS ----------
-
-      # Single-turn (com suporte a batches)
       def ask(prompt, system_message: nil, max_batch_attempts: 5)
         messages = build_messages(prompt, system_message)
+        log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 
-        # 1ª chamada
         response = post_chat(messages: messages, stream: false)
         parsed = parse_response(response)
 
         full_text = parsed[:text]
-        all_citations = parsed[:citations] # 👈 coleta inicial
+        all_citations = parsed[:citations]
         batch_count = 1
 
         gpt5 = Ai::Model::Gpt5.new
         response_divided_in_batches = gpt5.has_batches?(full_text)
 
         while response_divided_in_batches && batch_count < max_batch_attempts
-          log_info("Detectado batch #{batch_count}, continuando...")
+          log_warn(__method__, "Detectado batch #{batch_count}, continuando...")
 
           continuation_messages = build_continuation_messages(messages, full_text)
-
           begin
             response = post_chat(messages: continuation_messages, stream: false)
             continuation_parsed = parse_response(response)
-
             new_content = continuation_parsed[:text]
             full_text += new_content
-
-            # 👇 junta citações (dedup por URL, mantendo ordem)
             all_citations = merge_citations(all_citations, continuation_parsed[:citations])
 
             batch_count += 1
             response_divided_in_batches = gpt5.has_batches?(full_text)
             sleep(0.5)
           rescue => e
-            log_error("Erro ao buscar batch #{batch_count}: #{e.message}")
+            log_error(__method__, e)
             break
           end
         end
 
         if batch_count >= max_batch_attempts
-          log_error("Atingido limite máximo de batches (#{max_batch_attempts})")
+          log_error(__method__, "Atingido limite máximo de batches (#{max_batch_attempts})")
         end
 
-        # 👇 Anexa referências se habilitado
         if @append_references && all_citations.any?
           full_text = append_references_section(full_text, all_citations)
         end
 
-        log_info("Resposta completa recebida em #{batch_count} batch(es)")
-
-        {
-          text: full_text,
-          usage: parsed[:usage],
-          batch_count: batch_count,
-          citations: all_citations
-        }
+        log_info(__method__, "Resposta completa recebida em #{batch_count} batch(es)")
+        { text: full_text, usage: parsed[:usage], batch_count: batch_count, citations: all_citations }
       end
 
-      # Streaming (coleta search_results e envia refs no final)
       def ask_stream(prompt, system_message: nil, &block)
         messages = build_messages(prompt, system_message)
+        log_debug(__method__, "Iniciando streaming para prompt: #{prompt.inspect}")
         collected_citations = []
 
         post_chat_stream(messages: messages) do |event|
-          # event => { done:, content:, full_response: } (e possivelmente :raw para JSON bruto)
           if event[:done]
             if @append_references && collected_citations.any?
               refs = build_references(event[:content], collected_citations)
-              # emite bloco final com referências
+              log_info(__method__, "Referências anexadas ao streaming")
               yield({ done: false, content: "\n\n#{refs}", full_response: event[:full_response].to_s + "\n\n#{refs}" }) if block_given?
             end
-            yield(event) if block_given? # done:true
+            log_info(__method__, "Streaming finalizado")
+            yield(event) if block_given?
           else
-            # tenta extrair citações quando o SSE vier com json completo (alguns envios incluem search_results)
             if event[:raw].is_a?(Hash) && event[:raw]["search_results"].is_a?(Array)
               collected_citations = merge_citations(collected_citations, normalize_search_results(event[:raw]["search_results"]))
+              log_debug(__method__, "Citações coletadas até agora: #{collected_citations.size}")
             end
             yield(event) if block_given?
           end
@@ -121,6 +109,7 @@ module Ai
       end
 
       def ask_with_context(messages)
+        log_debug(__method__, "Pergunta com contexto: #{messages.inspect}")
         response = post_chat(messages: messages, stream: false)
         parsed = parse_response(response)
         parsed[:text] = append_references_section(parsed[:text], parsed[:citations]) if @append_references && parsed[:citations].any?
@@ -128,17 +117,20 @@ module Ai
       end
 
       def ask_with_context_stream(messages, &block)
+        log_debug(__method__, "Pergunta com contexto + streaming: #{messages.inspect}")
         collected_citations = []
         post_chat_stream(messages: messages) do |event|
           if event[:done]
             if @append_references && collected_citations.any?
               refs = build_references(event[:content], collected_citations)
+              log_info(__method__, "Referências anexadas ao streaming de contexto")
               yield({ done: false, content: "\n\n#{refs}", full_response: event[:full_response].to_s + "\n\n#{refs}" }) if block_given?
             end
             yield(event) if block_given?
           else
             if event[:raw].is_a?(Hash) && event[:raw]["search_results"].is_a?(Array)
               collected_citations = merge_citations(collected_citations, normalize_search_results(event[:raw]["search_results"]))
+              log_debug(__method__, "Citações coletadas até agora: #{collected_citations.size}")
             end
             yield(event) if block_given?
           end
@@ -153,30 +145,20 @@ module Ai
         msgs = []
         msgs << { role: "system", content: system_message } if system_message
         msgs << { role: "user", content: prompt }
+        log_debug(__method__, "Mensagens construídas: #{msgs.inspect}")
         msgs
       end
 
       def build_continuation_messages(original_messages, partial_response)
         continuation_messages = original_messages.dup
         continuation_messages << { role: "assistant", content: partial_response }
-        continuation_messages << {
-          role: "user",
-          content: "Continue your previous response. Please complete the remaining content. Respond strictly in English."
-        }
+        continuation_messages << { role: "user", content: "Continue your previous response. Please complete the remaining content. Respond strictly in English." }
+        log_debug(__method__, "Mensagens de continuação construídas")
         continuation_messages
       end
 
-      # ---------- HTTP ----------
-
       def post_chat(messages:, stream: false, retries: 3)
-        payload = {
-          model: model,
-          temperature: temperature,
-          max_tokens: max_tokens,
-          messages: messages,
-          stream: stream
-        }
-
+        payload = { model: model, temperature: temperature, max_tokens: max_tokens, messages: messages, stream: stream }
         options = @default_options.merge(body: payload.to_json)
         log_request(messages)
 
@@ -189,34 +171,28 @@ module Ai
         rescue Net::ReadTimeout, Net::OpenTimeout => e
           if attempt < retries
             wait_time = 2 ** attempt
-            log_error("Timeout error (attempt #{attempt}/#{retries}). Retrying in #{wait_time} seconds...")
+            log_warn(__method__, "Timeout (tentativa #{attempt}/#{retries}), retry em #{wait_time}s")
             sleep(wait_time)
             retry
           else
-            raise "Perplexity API Error: Request timeout after #{retries} attempts. The API might be slow or unavailable."
+            log_error(__method__, e)
+            raise "Perplexity API Error: Request timeout after #{retries} attempts."
           end
         rescue HTTParty::Error => e
+          log_error(__method__, e)
           raise "Perplexity API Error: HTTParty error - #{e.message}"
         rescue => e
+          log_error(__method__, e)
           raise "Perplexity API Error: Unexpected error - #{e.class}: #{e.message}"
         end
       end
 
-      # SSE streaming
       def post_chat_stream(messages:, &block)
         require "net/http"
         require "uri"
-
         uri = URI.parse("#{self.class.base_uri}/chat/completions")
 
-        payload = {
-          model: model,
-          temperature: temperature,
-          max_tokens: max_tokens,
-          messages: messages,
-          stream: true
-        }
-
+        payload = { model: model, temperature: temperature, max_tokens: max_tokens, messages: messages, stream: true }
         log_request(messages)
 
         Net::HTTP.start(uri.host, uri.port, use_ssl: true, read_timeout: 300) do |http|
@@ -228,13 +204,12 @@ module Ai
 
           http.request(request) do |response|
             if response.code != "200"
-              error_body = response.read_body
-              raise "Perplexity API Error: #{response.code} - #{error_body}"
+              log_error(__method__, "Erro HTTP: #{response.code} - #{response.body}")
+              raise "Perplexity API Error: #{response.code} - #{response.body}"
             end
 
             buffer = ""
             full_response = ""
-
             response.read_body do |chunk|
               buffer += chunk
               while (line_end = buffer.index("\n\n"))
@@ -245,31 +220,28 @@ module Ai
                 if line.start_with?("data: ")
                   data = line[6..-1]
                   if data == "[DONE]"
+                    log_info(__method__, "Streaming SSE concluído")
                     yield({ done: true, content: full_response, full_response: full_response }) if block_given?
                     break
                   end
 
                   begin
                     parsed = JSON.parse(data)
-
-                    # 1) delta de conteúdo incremental
                     if parsed.dig("choices", 0, "delta", "content")
                       content = parsed["choices"][0]["delta"]["content"]
                       full_response += content
+                      log_debug(__method__, "Chunk SSE recebido: #{content.inspect}")
+                      yield({ done: false, content: content, full_response: full_response, raw: parsed }) if block_given?
+                    elsif parsed.dig("choices", 0, "message", "content")
+                      content = parsed["choices"][0]["message"]["content"]
+                      full_response = content
+                      log_debug(__method__, "Resposta SSE completa recebida")
                       yield({ done: false, content: content, full_response: full_response, raw: parsed }) if block_given?
                     else
-                      # 2) alguns servidores enviam "content" completo no chunk
-                      if parsed.dig("choices", 0, "message", "content")
-                        content = parsed["choices"][0]["message"]["content"]
-                        full_response = content # substitui pelo completo
-                        yield({ done: false, content: content, full_response: full_response, raw: parsed }) if block_given?
-                      else
-                        # mesmo sem conteúdo, ainda pode conter search_results
-                        yield({ done: false, content: "", full_response: full_response, raw: parsed }) if block_given?
-                      end
+                      yield({ done: false, content: "", full_response: full_response, raw: parsed }) if block_given?
                     end
                   rescue JSON::ParserError
-                    log_error("Failed to parse SSE data: #{data}")
+                    log_warn(__method__, "Falha ao parsear SSE: #{data.inspect}")
                   end
                 end
               end
@@ -279,75 +251,65 @@ module Ai
           end
         end
       rescue => e
-        log_error("Stream error: #{e.message}")
+        log_error(__method__, e)
         raise "Perplexity API Streaming Error: #{e.message}"
       end
 
-      # ---------- PARSE & CITAÇÕES ----------
-
       def handle_response(response)
-        raise "Perplexity API Error: No response received from server" if response.nil?
+        raise "Perplexity API Error: No response" if response.nil?
 
         case response.code
         when 200
-          raise "Perplexity API Error: Response body is empty or invalid JSON" if response.parsed_response.nil?
+          log_info(__method__, "Resposta HTTP 200 recebida")
+          raise "Perplexity API Error: Invalid JSON" if response.parsed_response.nil?
           response.parsed_response
         when 401
-          raise "Perplexity API Error: Unauthorized - Invalid API key. Please check your API key in Settings."
+          log_error(__method__, "Unauthorized 401")
+          raise "Perplexity API Error: Unauthorized - Invalid API key."
         when 403
-          raise "Perplexity API Error: Forbidden - You don't have access to this model or resource."
+          raise "Perplexity API Error: Forbidden"
         when 429
-          raise "Perplexity API Error: Rate limit exceeded. Please wait before making more requests."
+          raise "Perplexity API Error: Rate limit exceeded"
         when 500..599
-          raise "Perplexity API Error: Server error (#{response.code}) - The Perplexity API is experiencing issues. Please try again later."
+          raise "Perplexity API Error: Server error #{response.code}"
         else
-          error_message = response.parsed_response&.dig("error", "message") || response.message || "Unknown error"
-          raise "Perplexity API Error: #{response.code} - #{error_message}"
+          msg = response.parsed_response&.dig("error", "message") || response.message
+          raise "Perplexity API Error: #{response.code} - #{msg}"
         end
       end
 
       def parse_response(response)
-        raise "Error parsing Perplexity response: Response is nil" if response.nil?
+        log_debug(__method__, "Parsing response: #{response.inspect}")
+
+        raise "Error parsing Perplexity response: nil" if response.nil?
         raise "Error parsing Perplexity response: Expected Hash, got #{response.class}" unless response.is_a?(Hash)
 
         choices = response["choices"]
-        raise "Error parsing Perplexity response: Invalid or empty choices array" if !choices.is_a?(Array) || choices.empty?
+        raise "Error parsing Perplexity response: Invalid choices" if !choices.is_a?(Array) || choices.empty?
 
         content = choices[0]&.dig("message", "content")
-        raise "Error parsing Perplexity response: No content in response" if content.nil?
+        raise "Error parsing Perplexity response: No content" if content.nil?
 
         citations = []
-        # 👇 API oficial expõe as fontes em 'search_results'
         if response["search_results"].is_a?(Array)
           citations = normalize_search_results(response["search_results"])
-        end
-
-        # fallback: algumas libs colocam em message["citations"]
-        if citations.empty? && choices[0]&.dig("message", "citations").is_a?(Array)
+        elsif choices[0]&.dig("message", "citations").is_a?(Array)
           citations = normalize_search_results(choices[0]["message"]["citations"])
         end
 
-        {
-          text: content,
-          usage: response["usage"] || {},
-          citations: citations
-        }
+        log_info(__method__, "Parse concluído, #{citations.size} citações extraídas")
+        { text: content, usage: response["usage"] || {}, citations: citations }
       rescue => e
-        log_error("Parse error: #{e.message}")
-        log_error("Response was: #{response.inspect}")
+        log_error(__method__, e)
         raise
       end
 
       def normalize_search_results(array)
         array.filter_map do |r|
           next unless r.is_a?(Hash)
-          url = r["url"] || r["source"] # alguns retornam 'source'
+          url = r["url"] || r["source"]
           next if url.nil? || url.empty?
-          {
-            "title" => r["title"].to_s.strip.empty? ? url : r["title"],
-            "url"   => url,
-            "date"  => r["date"]
-          }
+          { "title" => r["title"].to_s.strip.empty? ? url : r["title"], "url" => url, "date" => r["date"] }
         end
       end
 
@@ -356,6 +318,7 @@ module Ai
         have = existing.map { |c| c["url"] }.compact.to_set
         merged = existing.dup
         incoming.each { |c| merged << c unless have.include?(c["url"]) }
+        log_debug(__method__, "Merge citations: antes=#{existing.size}, depois=#{merged.size}")
         merged
       end
 
@@ -367,27 +330,19 @@ module Ai
 
       def build_references(text, citations)
         return "" if citations.nil? || citations.empty?
-
-        # quais índices foram citados (ex.: [1], [4], ...)
         used_indices = text.to_s.scan(/\[(\d+)\]/).flatten.map(&:to_i).uniq.sort
         list =
           if used_indices.any?
             used_indices.filter_map do |i|
-              c = citations[i - 1] # 1-based no texto, 0-based no array
+              c = citations[i - 1]
               next unless c
               format_ref_line(i, c)
             end
           else
-            # se não houver [n] no corpo, lista todas em ordem
             citations.each_with_index.map { |c, idx| format_ref_line(idx + 1, c) }
           end
-
         return "" if list.empty?
-        [
-          "---",
-          "## References",
-          *list
-        ].join("\n")
+        [ "---", "## References", *list ].join("\n")
       end
 
       def format_ref_line(index, c)
@@ -395,39 +350,23 @@ module Ai
         "[#{index}] #{c["title"]} — #{c["url"]}#{date}"
       end
 
-      # ---------- LOG ----------
-
       def log_request(messages)
-        return unless defined?(Rails)
-        Rails.logger.info "=" * 50
-        Rails.logger.info "Perplexity API Request:"
-        Rails.logger.info "URL: #{self.class.base_uri}/chat/completions"
-        Rails.logger.info "Model: #{model}"
-        Rails.logger.info "Temperature: #{temperature}"
-        Rails.logger.info "Max Tokens: #{max_tokens}"
-        Rails.logger.info "Messages count: #{messages.size}"
-        Rails.logger.info "First message: #{messages.first.inspect}" if messages.any?
+        log_info(__method__, "=" * 50)
+        log_info(__method__, "Perplexity API Request")
+        log_info(__method__, "Model: #{model}")
+        log_info(__method__, "Temperature: #{temperature}")
+        log_info(__method__, "Max Tokens: #{max_tokens}")
+        log_info(__method__, "Messages count: #{messages.size}")
+        log_debug(__method__, "First message: #{messages.first.inspect}") if messages.any?
       end
 
       def log_response(response)
-        return unless defined?(Rails)
-        Rails.logger.info "Perplexity API Response:"
-        Rails.logger.info "Status: #{response.code}"
-        Rails.logger.info "Success: #{response.success?}"
+        log_info(__method__, "Perplexity API Response: HTTP #{response.code}, success=#{response.success?}")
         if response.code != 200
-          Rails.logger.error "Error response body: #{response.body}"
+          log_error(__method__, "Error response body: #{response.body}")
         else
-          Rails.logger.info "Response has choices: #{response.parsed_response&.key?('choices')}"
-          Rails.logger.info "Response has search_results: #{response.parsed_response&.key?('search_results')}"
+          log_debug(__method__, "Tem choices? #{response.parsed_response&.key?('choices')}, tem search_results? #{response.parsed_response&.key?('search_results')}")
         end
-      end
-
-      def log_error(message)
-        defined?(Rails) ? Rails.logger.error(message) : puts("ERROR: #{message}")
-      end
-
-      def log_info(message)
-        defined?(Rails) ? Rails.logger.info(message) : puts("INFO: #{message}")
       end
     end
   end
