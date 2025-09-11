@@ -7,7 +7,7 @@ module Ai
       DEFAULT_SYSTEM_MESSAGE = "You are a helpful, concise, and knowledgeable assistant. Always respond clearly and accurately, prioritizing brand strategy context."
 
       def initialize(system_message: DEFAULT_SYSTEM_MESSAGE)
-        @client = Anthropic::Client.new(api_key: ENV["ANTHROPIC_API_KEY"])
+        @client = Anthropic::Client.new(api_key: Settings.reload!.apis.anthropic.api_key)
         @system_message = system_message
       end
 

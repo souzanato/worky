@@ -5,13 +5,20 @@ class WorkflowExecutionEventsController < ApplicationController
   def create
     @event = @execution.events.build(event_params)
 
-    if @event.save
-      # atualiza execução pra apontar pro próximo passo
-      advance_execution!(@event) if @event.step_action == "next"
+    if @event.step_action == "next"
+      advance_execution!(@event)
+      redirect_to client_workflow_execution_path(@client, @execution), notice: "Event recorded."
+    elsif @event.step_action == "step_back"
+      step_back_execution!(@event)
       redirect_to client_workflow_execution_path(@client, @execution), notice: "Event recorded."
     else
-      redirect_to client_workflow_execution_path(@client, @execution),
-                  alert: "Could not record event."
+      if @event.save
+        # atualiza execução pra apontar pro próximo passo
+        redirect_to client_workflow_execution_path(@client, @execution), notice: "Event recorded."
+      else
+        redirect_to client_workflow_execution_path(@client, @execution),
+                    alert: "Could not record event."
+      end
     end
   end
 
@@ -31,9 +38,18 @@ class WorkflowExecutionEventsController < ApplicationController
 
   # placeholder: avança execução pro próximo action
   def advance_execution!(event)
-    byebug
     step = event.action.last_action? ? event.action.step.next_step : event.action.step
     next_action = step.actions.where("actions.id > ?", event.action.id).first
-    @execution.update!(current_action: next_action, status: :running) if next_action
+    @execution.update_columns(current_action_id: next_action&.id, status: :running) if next_action
+    previous_event = @execution.events.where(action_id: event.action_id)&.last
+    previous_event.nil? ? event.update!(status: 1) : previous_event.update_column(:status, 1)
+  end
+
+  def step_back_execution!(event)
+    step = event.action.first_action? ? event.action.step.previous_step : event.action.step
+    previous_action = step.actions.where("actions.id > ?", event.action.id).last
+    @execution.update_columns(current_action_id: previous_action&.id, status: :running) if previous_action
+    previous_event = @execution.events.where(action_id: event.action_id)&.last
+    previous_event.nil? ? event.update!(status: 0) : previous_event.update_column(:status, 0)
   end
 end

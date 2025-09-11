@@ -14,6 +14,10 @@ class Action < ApplicationRecord
     step.actions.order(:order).last == self
   end
 
+  def first_action?
+    step.actions.order(:order).first == self
+  end
+
   def prompt_generator(workflow_execution)
     self.workflow_execution = workflow_execution
     pinecones_results = get_pinecone_results

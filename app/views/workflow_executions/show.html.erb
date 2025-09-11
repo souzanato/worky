@@ -135,21 +135,24 @@
 
 
                 <% if @execution.events.where(action_id: action.id, status: 1).any? %>
+                  <strong>
+                    <%= action.title %>
+                  </strong>
                   <span class="badge bg-success ms-2">done</span>
-
                 <% elsif action==@execution.current_action %>
 
 
+                  <% artifact = @execution.action_artifact(action) %>
 
                   <!-- Nav tabs (fora do card) -->
                   <ul class="nav nav-tabs nav-tabs-inverse" role="tablist">
                     <li class="nav-item" role="presentation">
-                      <a href="#general-tab" data-bs-toggle="tab" class="nav-link active" aria-selected="true" role="tab" style="    border-left: 1px solid #ced4da; border-top: 1px solid #ced4da;">
+                      <a href="#general-tab" data-bs-toggle="tab" class="nav-link <%= 'active' unless artifact %>" aria-selected="true" role="tab" style="    border-left: 1px solid #ced4da; border-top: 1px solid #ced4da;">
                         <%= action.title %>
                       </a>
                     </li>
                     <li class="nav-item" role="presentation">
-                      <a href="#artifacts-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+                      <a href="#artifacts-tab" data-bs-toggle="tab" class="nav-link <%= 'active' if artifact %>" aria-selected="false" role="tab">
                         Artifact
                       </a>
                     </li>
@@ -164,7 +167,7 @@
                     <!-- Form para criar WorkflowExecutionEvent -->
 
                       <!-- General -->
-                      <div class="tab-pane fade show active" id="general-tab" role="tabpanel">
+                      <div class="tab-pane fade <%= 'show active' unless artifact %>" id="general-tab" role="tabpanel">
                       
                                           <%= f.hidden_field :action_id, value: action.id %>
 
@@ -179,36 +182,40 @@
                                               data-workflow-execution-event-target="monacoEditor">
                                             </div>
                                           </div>
-
+                          <%= button_tag type: :submit, class: 'btn btn-secondary', name: "workflow_execution_event[step_action]", value: "prompt_it" do %>
+                            <i class="fa-solid fa-reply"></i>
+                            <% if artifact %>
+                              Prompt it again
+                            <% else %>
+                              Prompt it
+                            <% end %>
+                          <% end %>    
 
 
                       </div>
 
                       <!-- Artifacts -->
-                      <div class="tab-pane fade" id="artifacts-tab" role="tabpanel" style="max-height: 45em; overflow-y: auto; background: #eee; border-radius: .5em; padding: 1em;">
-                        <% artifact = @execution.action_artifact(action) %>
-                        <% if artifact %>
-
-                        <%= markdown_to_html(artifact.content) %>
+                      <div class="tab-pane fade <%= 'show active' if artifact %>" id="artifacts-tab" role="tabpanel" style="max-height: 45em; overflow-y: auto; background: #eee; border-radius: .5em; padding: 1em;">
                         
+                        <% if artifact %>
+                          <%= markdown_to_html(artifact.content) %>
+                        <% else %>
+                          Click "Prompt It" to generate this artifact
                         <% end %>
                       </div>
 
                   </div>
                       <div class="row mt-3">
-                        <div class="col-6">
-                          <%= button_tag type: :submit, class: 'btn btn-secondary', name: "workflow_execution_event[step_action]", value: "prompt_it" do %>
-                            <i class="fa-solid fa-reply"></i>
-                            <% if has_artifact?(action) %>
-                              Prompt it again
-                            <% else %>
-                              Prompt it
-                            <% end %>
-                          <% end %>                              
+                        <div class="col-6">                          
                           
                         </div>
 
                         <div class="col-6 d-flex justify-content-end">
+                          <%= button_tag type: :submit, class: 'btn btn-outline-primary me-2', name: "workflow_execution_event[step_action]", value: "previous" do %>
+                          <i class="fa-solid fa-arrow-left-long"></i>
+                          Previous
+                          <% end %>
+
                           <%= button_tag type: :submit, class: 'btn btn-primary', name: "workflow_execution_event[step_action]", value: "next" do %>
                             Next
                             <i class="fa-solid fa-arrow-right-long"></i>
