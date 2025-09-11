@@ -22,12 +22,35 @@ RAILS_ENV=production bundle exec rake assets:precompile
 echo "🧹 Limpando assets antigos..."
 RAILS_ENV=production bundle exec rake assets:clean
 
-# Opcional: migrar storage ativo (caso use ActiveStorage com Cloud)
-# echo "📂 Migrando ActiveStorage..."
-# RAILS_ENV=production bundle exec rake active_storage:update
-
-# Reinicia o servidor (ajusta conforme teu setup, ex: puma, passenger, etc.)
+# Reinicia serviços
 echo "🔄 Reiniciando Puma..."
 sudo systemctl restart puma
 
-echo "✅ Deploy finalizado com sucesso!"
+echo "🔄 Reiniciando Nginx..."
+sudo systemctl restart nginx
+
+# ==========================================================
+# Verificação de serviços
+# ==========================================================
+
+echo "📡 Checando status do Puma..."
+if ! systemctl is-active --quiet puma; then
+  echo "❌ Puma não está rodando. Tentando debug..."
+  sudo systemctl status puma --no-pager
+  sudo journalctl -u puma -n 50 --no-pager
+else
+  echo "✅ Puma está ativo."
+  sudo systemctl status puma --no-pager | head -n 10
+fi
+
+echo "📡 Checando status do Nginx..."
+if ! systemctl is-active --quiet nginx; then
+  echo "❌ Nginx não está rodando. Tentando debug..."
+  sudo systemctl status nginx --no-pager
+  sudo journalctl -u nginx -n 50 --no-pager
+else
+  echo "✅ Nginx está ativo."
+  sudo systemctl status nginx --no-pager | head -n 10
+fi
+
+echo "🏁 Deploy finalizado com sucesso!"
