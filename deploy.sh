@@ -18,7 +18,7 @@ RAILS_ENV=production bundle exec rake db:migrate
 echo "🎨 Precompilando assets..."
 RAILS_ENV=production bundle exec rake assets:precompile
 
-# Limpa assets antigos (pra evitar lixo ocupando espaço)
+# Limpa assets antigos
 echo "🧹 Limpando assets antigos..."
 RAILS_ENV=production bundle exec rake assets:clean
 
@@ -30,27 +30,28 @@ echo "🔄 Reiniciando Nginx..."
 sudo systemctl restart nginx
 
 # ==========================================================
-# Verificação de serviços
+# Função de verificação com debug
 # ==========================================================
+check_service() {
+  local service=$1
+  echo "📡 Checando status do $service..."
 
-echo "📡 Checando status do Puma..."
-if ! systemctl is-active --quiet puma; then
-  echo "❌ Puma não está rodando. Tentando debug..."
-  sudo systemctl status puma --no-pager
-  sudo journalctl -u puma -n 50 --no-pager
-else
-  echo "✅ Puma está ativo."
-  sudo systemctl status puma --no-pager | head -n 10
-fi
+  # Pega status detalhado
+  STATUS=$(systemctl show -p ActiveState,SubState --value $service | tr '\n' ' ')
 
-echo "📡 Checando status do Nginx..."
-if ! systemctl is-active --quiet nginx; then
-  echo "❌ Nginx não está rodando. Tentando debug..."
-  sudo systemctl status nginx --no-pager
-  sudo journalctl -u nginx -n 50 --no-pager
-else
-  echo "✅ Nginx está ativo."
-  sudo systemctl status nginx --no-pager | head -n 10
-fi
+  if [[ "$STATUS" == *"active running"* ]]; then
+    echo "✅ $service está rodando."
+    sudo systemctl status $service --no-pager | head -n 10
+  else
+    echo "❌ $service não subiu corretamente (estado: $STATUS). Debug abaixo:"
+    sudo systemctl status $service --no-pager
+    sudo journalctl -u $service -n 50 --no-pager
+    exit 1
+  fi
+}
 
-echo "🏁 Deploy finalizado com sucesso!"
+# Checa Puma e Nginx
+check_service puma
+check_service nginx
+
+echo "🏁 Deploy finalizado!"
