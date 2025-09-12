@@ -2,9 +2,13 @@
 # Sistema Operacional / Editor
 # ==========================================================
 # macOS
-.DS_Store
 .AppleDouble
 .LSOverride
+
+# macOS .DS_Store recursivo (qualquer pasta, qualquer case)
+.DS_Store
+**/.DS_Store
+**/.ds_store
 
 # Ícones no diretório (macOS)
 Icon
