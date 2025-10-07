@@ -14,6 +14,7 @@ production: &production
   username: <%= ENV['WORKY_USER'] %>
   password: <%= ENV['WORKY_PASSWORD'] %>
   encoding: utf8
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 15 } %>
   port: 5432
 
 cable:
