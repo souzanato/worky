@@ -38,34 +38,66 @@ module Ai
         log_info(__method__, "Inicializando Perplexity com modelo=#{@model}, max_tokens=#{@max_tokens}, append_refs=#{@append_references}")
       end
 
-      def ask(prompt, system_message: nil, max_batch_attempts: 5)
+      def ask(prompt, action, system_message: nil, max_batch_attempts: 10, sse: nil)  # Aumentado para 10
         messages = build_messages(prompt, system_message)
         log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 
-        response = post_chat(messages: messages, stream: false)
+        response = post_chat(messages: messages, action: action, stream: false)
         parsed = parse_response(response)
 
         full_text = parsed[:text]
         all_citations = parsed[:citations]
         batch_count = 1
 
-        gpt5 = Ai::Model::Gpt5.new
-        response_divided_in_batches = gpt5.has_batches?(full_text)
+        # Verificação mais inteligente de continuação
+        needs_continuation = should_continue?(full_text)
+        log_info(__method__, "Primeira resposta - precisa continuar? #{needs_continuation} (length: #{full_text&.length || 0})")
 
-        while response_divided_in_batches && batch_count < max_batch_attempts
-          log_warn(__method__, "Detectado batch #{batch_count}, continuando...")
+        progress = 61
+        sse.write({ progress: 60, message: "Starting batch processing..." }, event: "status") if sse and needs_continuation
+        while needs_continuation && batch_count < max_batch_attempts
+          sse.write({ progress: progress, message: "Processing batch #{batch_count + 1}..." }, event: "status") if sse
+
+          log_warn(__method__, "Iniciando batch #{batch_count + 1} de #{max_batch_attempts}")
 
           continuation_messages = build_continuation_messages(messages, full_text)
+
           begin
-            response = post_chat(messages: continuation_messages, stream: false)
+            response = post_chat(messages: continuation_messages, action: action, stream: false)
             continuation_parsed = parse_response(response)
             new_content = continuation_parsed[:text]
+
+            # Verifica se o novo conteúdo é substancial
+            if new_content.strip.length < 100
+              log_warn(__method__, "Conteúdo de continuação muito curto (#{new_content.strip.length} chars), parando")
+              break
+            end
+
+            # Limpa possível duplicação
+            new_content = clean_continuation_content(full_text, new_content)
+
+            # Adiciona o novo conteúdo
             full_text += new_content
             all_citations = merge_citations(all_citations, continuation_parsed[:citations])
 
             batch_count += 1
-            response_divided_in_batches = gpt5.has_batches?(full_text)
+
+            # Reavalia se precisa continuar com lógica melhorada
+            needs_continuation = should_continue?(new_content) && !response_seems_complete?(full_text)
+
+            log_info(__method__, "Batch #{batch_count} concluído - precisa continuar? #{needs_continuation} (total length: #{full_text&.length || 0})")
+
+            # Para evitar loops infinitos, verifica se houve progresso significativo
+            if new_content.strip.length < 200
+              log_warn(__method__, "Progresso limitado detectado, verificando se deve parar")
+              if response_seems_complete?(full_text)
+                log_info(__method__, "Resposta parece completa, parando continuação")
+                break
+              end
+            end
+
             sleep(0.5)
+            progress = progress + 1
           rescue => e
             log_error(__method__, e)
             break
@@ -73,15 +105,37 @@ module Ai
         end
 
         if batch_count >= max_batch_attempts
-          log_error(__method__, "Atingido limite máximo de batches (#{max_batch_attempts})")
+          log_warn(__method__, "Atingido limite máximo de batches (#{max_batch_attempts})")
+            sse.write({ progress: progress, message: "Reached maximum batch limit (#{max_batch_attempts})" }, event: "status") if sse
+          log_info(__method__, "Análise final: #{analyze_completion_status(full_text)}")
+        else
+            sse.write({ progress: progress, message: "Batches completed naturally in #{batch_count} attempts" }, event: "status") if sse
+          log_info(__method__, "Batches concluídos naturalmente em #{batch_count} tentativas")
         end
 
         if @append_references && all_citations.any?
           full_text = append_references_section(full_text, all_citations)
         end
 
-        log_info(__method__, "Resposta completa recebida em #{batch_count} batch(es)")
+        log_info(__method__, "Resposta final: #{batch_count} batch(es), #{full_text&.length || 0} caracteres")
         { text: full_text, usage: parsed[:usage], batch_count: batch_count, citations: all_citations }
+      end
+
+      def batch_prompt
+        prompt = <<-markdown
+
+          ---
+
+          ## Response Management
+
+          **IMPORTANT - Batch Continuation Protocol**: Due to the comprehensive nature of this analysis, if you need to continue:
+          - End ONLY with: **"Continue in next batch..."** (exact text)
+          - Do NOT add this phrase unless you actually need to continue
+          - Do NOT use phrases like "Continue if further..." or "May continue..."
+          - If analysis is complete, end naturally without continuation phrases
+        markdown
+
+        prompt
       end
 
       def ask_stream(prompt, system_message: nil, &block)
@@ -141,24 +195,170 @@ module Ai
 
       attr_reader :api_key, :model, :temperature, :max_tokens, :default_options
 
+      # NOVA LÓGICA UNIFICADA DE CONTINUAÇÃO
+      def should_continue?(content)
+        return false if content.nil? || content.strip.empty?
+
+        text = content.downcase.strip
+
+        log_debug(__method__, "Analisando continuação para: '#{content.slice(-150..-1)}'")
+
+        # Padrões que indicam continuação REAL - PRIMEIRO E MAIS IMPORTANTE
+        true_continuation_patterns = [
+          /continue\s+in\s+next\s+batch\.{3}$/i,  # Exato do prompt
+          /continue\s+in\s+next\s+batch\.{0,3}$/i  # Com ou sem pontos
+        ]
+
+        # Verifica continuação verdadeira PRIMEIRO
+        has_true_continuation = true_continuation_patterns.any? { |pattern| text.match?(pattern) }
+
+        # Se tem continuação explícita, deve continuar sempre
+        if has_true_continuation
+          log_debug(__method__, "✅ Continuação explícita detectada - deve continuar")
+          return true
+        end
+
+        # Padrões que são FALSOS POSITIVOS
+        false_positive_patterns = [
+          /continue\s+if\s+further/i,
+          /continue\s+if\s+additional/i,
+          /continue\s+if\s+needed/i,
+          /continue\s+if\s+required/i,
+          /may\s+continue/i,
+          /can\s+continue/i,
+          /should\s+continue/i,
+          /to\s+continue/i
+        ]
+
+        # Verifica falsos positivos
+        is_false_positive = false_positive_patterns.any? { |pattern| text.match?(pattern) }
+
+        if is_false_positive
+          log_debug(__method__, "❌ Falso positivo detectado - não é continuação real")
+          return false
+        end
+
+        # Verifica truncamento suspeito (texto longo sem final adequado)
+        appears_truncated = content.length > 3000 &&
+                           !text.match?(/\.\s*$|!\s*$|\?\s*$|---\s*$|\*\*\s*$/) &&
+                           !text.match?(/references\s*$/i) &&
+                           !text.match?(/sources\s*$/i)
+
+        result = appears_truncated
+
+        log_debug(__method__, "🔍 Análise: true_continuation=#{has_true_continuation}, truncated=#{appears_truncated}, false_positive=#{is_false_positive} → #{result}")
+
+        result
+      end
+
+      def response_seems_complete?(content)
+        return false if content.nil? || content.strip.empty?
+
+        text = content.downcase.strip
+
+        # PRIMEIRO: Se tem "Continue in next batch...", NÃO está completo
+        continuation_indicators = [
+          /continue\s+in\s+next\s+batch/i
+        ]
+
+        has_continuation_request = continuation_indicators.any? { |pattern| text.match?(pattern) }
+
+        if has_continuation_request
+          log_debug(__method__, "🔄 Texto tem pedido de continuação - NÃO está completo")
+          return false
+        end
+
+        # Só depois verifica outros indicadores de completude
+        strong_completion_indicators = [
+          # Termina com seção completa de referências (não no meio)
+          /---\s*##\s*references.*$/mi,
+          /bibliography\s*$/i,
+          /conclusion\s*$/i,
+          # Análise explicitamente finalizada
+          /analysis\s+complete/i,
+          /study\s+concluded/i,
+          /assessment\s+finished/i,
+          /evaluation\s+concluded/i,
+          /research\s+complete/i
+        ]
+
+        # Verifica se tem PESTLE completo E sem pedido de continuação
+        has_all_pestle_sections = text.include?("political") && text.include?("economic") &&
+                                 text.include?("social") && text.include?("technological") &&
+                                 text.include?("legal") && text.include?("environmental")
+
+        has_many_items = text.scan(/[peslte]\d+/i).length >= 20  # Aumentei o limite
+
+        has_strong_indicator = strong_completion_indicators.any? { |pattern| content.match?(pattern) }
+
+        # Só considera completo se tem indicadores FORTES
+        result = has_strong_indicator || (has_all_pestle_sections && has_many_items && content.length > 8000)
+
+        log_debug(__method__, "📋 Completude: strong=#{has_strong_indicator}, all_pestle=#{has_all_pestle_sections}, many_items=#{has_many_items}, continuation=#{has_continuation_request} → #{result}")
+
+        result
+      end
+
+      def analyze_completion_status(content)
+        return "Conteúdo vazio" if content.nil? || content.strip.empty?
+
+        analysis = {
+          length: content.length,
+          has_references: content.downcase.include?("references"),
+          pestle_sections: content.downcase.scan(/political|economic|social|technological|legal|environmental/).length,
+          numbered_items: content.scan(/[PESLTE]\d+/i).length,
+          seems_complete: response_seems_complete?(content)
+        }
+
+        "Chars: #{analysis[:length]}, PESTLE seções: #{analysis[:pestle_sections]}, Items numerados: #{analysis[:numbered_items]}, Tem refs: #{analysis[:has_references]}, Completo: #{analysis[:seems_complete]}"
+      end
+
+      def clean_continuation_content(previous_text, new_content)
+        return new_content if previous_text.nil? || new_content.nil?
+
+        # Remove possível repetição dos últimos caracteres
+        [ 100, 50, 25 ].each do |check_length|
+          last_chars = previous_text.slice(-check_length..-1)
+          if last_chars && new_content.start_with?(last_chars.strip)
+            cleaned = new_content[last_chars.strip.length..-1]
+            log_debug(__method__, "🧹 Removida repetição de #{check_length} chars")
+            return cleaned
+          end
+        end
+
+        new_content
+      end
+
       def build_messages(prompt, system_message)
         msgs = []
         msgs << { role: "system", content: system_message } if system_message
-        msgs << { role: "user", content: prompt }
-        log_debug(__method__, "Mensagens construídas: #{msgs.inspect}")
+        msgs << { role: "user", content: prompt + batch_prompt }
+        log_debug(__method__, "Mensagens construídas: #{msgs.size} mensagens")
         msgs
       end
 
       def build_continuation_messages(original_messages, partial_response)
         continuation_messages = original_messages.dup
         continuation_messages << { role: "assistant", content: partial_response }
-        continuation_messages << { role: "user", content: "Continue your previous response. Please complete the remaining content. Respond strictly in English." }
-        log_debug(__method__, "Mensagens de continuação construídas")
+        continuation_messages << { role: "user", content: "Continue" }
+        log_debug(__method__, "Mensagens de continuação construídas: #{continuation_messages.size} mensagens")
         continuation_messages
       end
 
-      def post_chat(messages:, stream: false, retries: 3)
-        payload = { model: model, temperature: temperature, max_tokens: max_tokens, messages: messages, stream: stream }
+      def post_chat(messages:, action: nil, stream: false, retries: 3)
+        payload = {
+          model: model,
+          temperature: temperature,
+          max_tokens: max_tokens,
+          messages: messages,
+          stream: stream,
+          return_citations: true
+        }
+
+        if action&.ai_action&.custom_attributes&.is_a?(Hash)
+          payload.merge!(action.ai_action.custom_attributes)
+        end
+
         options = @default_options.merge(body: payload.to_json)
         log_request(messages)
 
@@ -204,7 +404,7 @@ module Ai
 
           http.request(request) do |response|
             if response.code != "200"
-              log_error(__method__, "Erro HTTP: #{response.code} - #{response.body}")
+              log_warn(__method__, "Erro HTTP: #{response.code} - #{response.body}")
               raise "Perplexity API Error: #{response.code} - #{response.body}"
             end
 
@@ -264,7 +464,7 @@ module Ai
           raise "Perplexity API Error: Invalid JSON" if response.parsed_response.nil?
           response.parsed_response
         when 401
-          log_error(__method__, "Unauthorized 401")
+          log_warn(__method__, "Unauthorized 401 - Invalid API key")
           raise "Perplexity API Error: Unauthorized - Invalid API key."
         when 403
           raise "Perplexity API Error: Forbidden"
@@ -357,15 +557,18 @@ module Ai
         log_info(__method__, "Temperature: #{temperature}")
         log_info(__method__, "Max Tokens: #{max_tokens}")
         log_info(__method__, "Messages count: #{messages.size}")
-        log_debug(__method__, "First message: #{messages.first.inspect}") if messages.any?
+
+        if messages.size > 2
+          log_debug(__method__, "🔄 Continuação detectada")
+        end
       end
 
       def log_response(response)
         log_info(__method__, "Perplexity API Response: HTTP #{response.code}, success=#{response.success?}")
         if response.code != 200
-          log_error(__method__, "Error response body: #{response.body}")
+          log_warn(__method__, "Error response body: #{response.body}")
         else
-          log_debug(__method__, "Tem choices? #{response.parsed_response&.key?('choices')}, tem search_results? #{response.parsed_response&.key?('search_results')}")
+          log_debug(__method__, "Resposta recebida com sucesso")
         end
       end
     end

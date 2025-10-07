@@ -10,8 +10,42 @@ class Action < ApplicationRecord
   accepts_nested_attributes_for :ai_action
   attr_accessor :workflow_execution
 
+  after_save :set_rag_query, if: :saved_sync_rag_searcher?
+
+  def rag_artifacts
+    Artifact.where(code: rag_artifact_ids)
+  end
+
+  def content_artifacts
+    Artifact.where(code: content_artifact_ids)
+  end
+
+  def rag_artifact_ids
+    rag_searcher["rag_artifacts"] || []
+  end
+
+  def content_artifact_ids
+    rag_searcher["content_artifacts"] || []
+  end
+
+  def rag_artifact_ids=(ids)
+    self.rag_searcher["rag_artifacts"] = ids.reject(&:blank?)
+  end
+
+  def content_artifact_ids=(ids)
+    self.rag_searcher["content_artifacts"] = ids.reject(&:blank?)
+  end
+
   def last_action?
     step.actions.order(:order).last == self
+  end
+
+  def very_first_action?
+    self == self.step.workflow.ordered_actions.first
+  end
+
+  def very_last_action?
+    self == self.step.workflow.ordered_actions.last
   end
 
   def first_action?
@@ -21,28 +55,33 @@ class Action < ApplicationRecord
   def prompt_generator(workflow_execution)
     self.workflow_execution = workflow_execution
     pinecones_results = get_pinecone_results
-    # Remove o bloco completo (incluindo START e END) do content
+
+    # Remove blocos SEARCHER do conteúdo
     self.content = content.gsub(/<<SEARCHER>>(.+?)<<SEARCHER>>/m, "").strip
 
-    # - If no data is available for a given field, consider fullfil it using your knowledge based on what is described in the KNOWLEDGE BASE.
-    prompt = <<-markdown
+    prompt = <<-MARKDOWN
 You are an input filler.
-Your task is to use exclusively the data provided in KNOWLEDGE BASE to replace the inputs, question or instruction enclosed in double braces syntax {{inputs, question or instruction}} inside the TEMPLATE.
+Your task is to replace the inputs, question, or instruction enclosed in double braces syntax {{inputs, question or instruction}} inside the TEMPLATE.
 
 Rules:
   - The TEMPLATE must not be modified in any way other than replacing the {{inputs}}.
-  - Each {{input}} must be replaced only if corresponding information exists in the KNOWLEDGE BASE.
+  - Priority for replacements:
+      1. Use exclusively the data provided in RAG DATA whenever corresponding information exists.
+      2. If the corresponding information does not exist in the RAG DATA, then use your own knowledge and reasoning, considering the full context of the TEMPLATE, to insert the most accurate and contextually relevant information.
   - UNDER NO CIRCUMSTANCE should you replace any content that is not specifically enclosed within double braces {{input}}.
+  - Placeholders may appear wrapped in Markdown formatting (e.g., **{{input}}**, *{{input}}*, __{{input}}__).
+    Replace only the {{input}} inside and preserve the surrounding formatting exactly.
   - The final output must be the TEMPLATE with the inputs replaced.
   - The TEMPLATE is provided between <<<TEMPLATE>>> and <<<END TEMPLATE>>>.
-  - The KNOWLEDGE BASE is provided between <<<KNOWLEDGE BASE>>> and <<<END KNOWLEDGE BASE>>>.
+  - The RAG DATA is provided between <<<RAG DATA>>> and <<<END RAG DATA>>>.
 
-  <<<TEMPLATE>>>#{self.content}<<<END TEMPLATE>>>
+<<<TEMPLATE>>>#{self.content}<<<END TEMPLATE>>>
 
-  <<<KNOWLEDGE BASE>>>#{pinecones_results}<<<END KNOWLEDGE BASE>>>
-    markdown
+<<<RAG DATA>>>#{pinecones_results}<<<END RAG DATA>>>
+    MARKDOWN
+
     gpt5 = Ai::Model::Gpt5.new
-    result = gpt5.ask(prompt)
+    result = gpt5.ask(prompt, self, force_minimal_effort: true)
     return self.content unless result[:text]
     result[:text]
   end
@@ -51,8 +90,7 @@ Rules:
     result = Hash.new { |h, k| h[k] = [] }
 
     # Extrai tudo que está dentro do bloco <<SEARCHER>>...<<SEARCHER>>
-    searcher_content = self.content[/<<SEARCHER>>([\s\S]*?)<<SEARCHER>>/m, 1]
-
+    searcher_content = self.rag_query[/<<SEARCHER>>([\s\S]*?)<<SEARCHER>>/m, 1]
     return result unless searcher_content
 
     # Regex para capturar tags com hífen, underscore, etc.
@@ -111,5 +149,96 @@ Rules:
     end
 
     pinecone_prompts
+  end
+
+  def saved_sync_rag_searcher?
+    saved_change_to_content? || saved_change_to_rag_searcher?
+  end
+
+  def execution_artifact(execution)
+    execution.artifacts.where("title = ?", "#{self.artifact_name} (EXECUTION ##{execution.id})")&.first
+  end
+
+  def set_rag_query
+    if (self.has_ai_action or self.has_prompt_generator) and (self.content_artifact_ids.any? or self.rag_artifact_ids.any?)
+      artifacts = self.rag_artifact_ids&.map { |title| "<<ARTIFACT>>#{title}<<ARTIFACT>>" }&.join("\n")
+      contents = self.content_artifact_ids&.map { |title| "<<CONTENT>>#{title}<<CONTENT>>" }&.join("\n")
+      query = <<-string
+        <<SEARCHER>>
+          #{mount_prompt_generator}
+
+          #{mount_prompt}
+
+          #{artifacts}
+
+          #{contents}
+        <<SEARCHER>>
+      string
+
+      self.update(rag_query: query)
+    end
+  end
+
+  def prompt_query
+    query = <<-markdown
+      You are an assistant that converts **project/task prompts** into **Pinecone search instructions** using a fixed template.
+
+      ## Task
+      1. Read and analyze the entire prompt provided by the user.
+      2. Identify all **explicit input fields** (placeholders strictly formatted as `[ ]`).
+      3. Analyze the **semantic context** of the instructions to detect:
+        - **Implicit data needs** not marked as placeholders.
+        - **Technical knowledge requirements** necessary to perform the task.
+      4. Transform each identified data need or technical knowledge requirement into a **clear question**.
+
+      ## Output
+      - The output must be **ONLY the list of questions**.
+      - Questions must be written **in English**.
+      - Do not mention or reference the identified inputs. Output must contain **only the plain questions**.
+    markdown
+    query
+  end
+
+  def prompt_generator_query
+    query = <<-markdown
+      You are an assistant that converts **project/task prompts** into **Pinecone search instructions** using a fixed template.
+
+      ## Task
+      1. Read and analyze the entire prompt provided by the user.
+      2. Identify all **explicit input fields** (placeholders strictly formatted as `{{ }}`).
+      3. Detect any **essential implicit data needs** (like date, sources, markets) required to complete the task, even if not marked as placeholders.
+      4. Convert each identified need (explicit or implicit) into a **direct question in English**.
+
+      ## Output
+      - Output must be **ONLY the list of questions**.
+      - Questions must be written **in English**.
+      - Do **NOT** mention or reference placeholders or inputs directly.
+      - Keep the questions **simple and direct** (e.g., *What is client's brand name?*).
+      - Do **NOT** generate complex or analytical questions.
+    markdown
+
+    query
+  end
+
+  def mount_prompt_generator
+    gpt5nano = Ai::Model::Gpt5Nano.new
+    generator_result = gpt5nano.ask(self.content, self, system_message: prompt_generator_query)
+    result_text = <<-STRING
+      <<PROMPT-GENERATOR>>
+        #{generator_result[:text]}
+      <<PROMPT-GENERATOR>>
+    STRING
+    result_text
+  end
+
+  def mount_prompt
+    gpt5nano = Ai::Model::Gpt5Nano.new
+    generator_result = gpt5nano.ask(self.content, self, system_message: prompt_query)
+    result_text = <<-STRING
+      <<PROMPT>>
+        #{generator_result[:text]}
+      <<PROMPT>>
+    STRING
+    result_text
   end
 end

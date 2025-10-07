@@ -29,7 +29,11 @@ Rails.application.routes.draw do
     resources :clients do
         resources :artifacts, only: [ :new, :create, :edit, :update, :destroy ]
         resources :workflow_executions, only: [ :index, :new, :create, :show, :update, :destroy ] do
-          resources :workflow_execution_events, only: [ :create ]
+          resources :workflow_execution_events, only: [ :create ] do
+            collection do
+              post :stream
+            end
+          end
         end
     end
 
@@ -40,6 +44,8 @@ Rails.application.routes.draw do
         end
       end
     end
+
+    resources :ai_records
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

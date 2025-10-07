@@ -29,3 +29,4 @@ import "./csv_bootstrap_floating"
 
 import "./datatable.js"
 import "./turbo_listener.js"
+import 'parsleyjs'

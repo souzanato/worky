@@ -1,0 +1,45 @@
+<!-- app/views/ai_records/_modal.html.erb -->
+<div class="modal fade" id="aiRecordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content panel panel-inverse panel-with-tabs">
+      <!-- heading com tabs -->
+      <div class="panel-heading p-0 ui-sortable-handle">
+        <div class="tab-overflow overflow-right">
+          <ul class="nav nav-tabs nav-tabs-inverse" role="tablist">
+            <li class="nav-item">
+              <a href="#tab-transcription" data-bs-toggle="tab" class="nav-link active">
+                <i class="fa fa-microphone me-1"></i> Transcription
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-youtube" data-bs-toggle="tab" class="nav-link">
+                <i class="fab fa-youtube me-1"></i> YouTube
+              </a>
+            </li>
+            <li class="nav-item">
+              <a href="#tab-url" data-bs-toggle="tab" class="nav-link">
+                <i class="fa fa-link me-1"></i> URL
+              </a>
+            </li>
+          </ul>
+        </div>
+        <div class="panel-heading-btn me-2 ms-2 d-flex">
+          <a href="javascript:;" class="btn btn-xs btn-icon btn-danger" data-bs-dismiss="modal"><i class="fa fa-times"></i></a>
+        </div>
+      </div>
+
+      <!-- corpo com forms -->
+      <div class="panel-body tab-content">
+        <div class="tab-pane fade show active" id="tab-transcription">
+          <%= render "ai_records/form_transcription", ai_record: AiRecord.new(source_type: "file") %>
+        </div>
+        <div class="tab-pane fade" id="tab-youtube">
+          <%= render "ai_records/form_youtube", ai_record: AiRecord.new(source_type: "text") %>
+        </div>
+        <div class="tab-pane fade" id="tab-url">
+          <%= render "ai_records/form_url", ai_record: AiRecord.new(source_type: "text") %>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>

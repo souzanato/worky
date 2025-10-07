@@ -1,4 +1,4 @@
-// app/javascript/turbo_logger.js
+// app/javascript/turbo_listener.js
 import { Turbo } from "@hotwired/turbo-rails"
 
 let activeTurboRequests = 0

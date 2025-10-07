@@ -20,7 +20,7 @@ module Ai
         log_info(__method__, "Inicializando Grok com modelo=#{@model}, timeout=#{@timeout}s")
       end
 
-      def ask(prompt, system_message: nil, temperature: 0.7, max_tokens: nil, stream: true)
+      def ask(prompt, action, system_message: nil, temperature: 0.7, max_tokens: nil, stream: true, sse: nil)
         messages = build_messages(prompt, system_message)
         log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 

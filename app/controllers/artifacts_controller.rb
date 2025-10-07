@@ -15,6 +15,7 @@ class ArtifactsController < ApplicationController
   def update
     @artifact = @resource.artifacts.find(params[:id])
     if @artifact.update(artifact_params)
+      @artifact.upsert_to_pinecone
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @resource, notice: "Updated" }
@@ -27,6 +28,7 @@ class ArtifactsController < ApplicationController
   def create
     @artifact = @resource.artifacts.build(artifact_params)
     if @artifact.save
+      @artifact.upsert_to_pinecone
       respond_to do |format|
         format.turbo_stream
         format.html { redirect_to @resource, notice: t(".uploaded", default: "File uploaded successfully.") }
@@ -73,7 +75,7 @@ class ArtifactsController < ApplicationController
 
 
   def artifact_params
-    params.require(:artifact).permit(:file, :title, :description)
+    params.require(:artifact).permit(:file, :title, :description, :content)
   end
 end
 

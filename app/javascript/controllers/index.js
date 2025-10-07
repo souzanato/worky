@@ -2,6 +2,8 @@
 // Run that command whenever you add a new controller or create them with
 // ./bin/rails generate stimulus controllerName
 
+// app/javascript/controllers/index.js
+
 import { application } from "./application"
 
 import ActionController from "./action_controller"
@@ -36,3 +38,12 @@ application.register("workflow-builder", WorkflowBuilderController)
 
 import WorkflowExecutionEventController from "./workflow_execution_event_controller"
 application.register("workflow-execution-event", WorkflowExecutionEventController)
+
+import WorkflowStreamingController from "./workflow_streaming_controller"
+application.register("workflow-streaming", WorkflowStreamingController)
+
+import AiRecordController from "./ai_record_controller"
+application.register("ai-record", AiRecordController)
+
+import AiRecordLauncherController from "./ai_record_launcher_controller"
+application.register("ai-record-launcher", AiRecordLauncherController)

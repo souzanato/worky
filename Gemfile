@@ -96,3 +96,7 @@ gem "paper_trail", "~> 16.0"
 gem "meta-tags", "~> 2.22"
 
 gem "redcarpet", "~> 3.6"
+
+gem "ferrum", "~> 0.17.1"
+
+gem "replicate-ruby", "~> 0.2.3"

@@ -63,7 +63,7 @@ class ActionsController < ApplicationController
   end
 
   def action_params
-    params.require(:workflow_action).permit(:title, :description, :order, :content, :has_ai_action, :has_prompt_generator, :artifact_name, ai_action_attributes: [ :id, :ai_model ])
+    params.require(:workflow_action).permit(:title, :description, :order, :content, :has_ai_action, :allow_prompting, :has_prompt_generator, :artifact_name,  rag_artifact_ids: [], content_artifact_ids: [], ai_action_attributes: [ :id, :ai_model, :custom_attributes ])
   end
 
   def reorder_action(delta)

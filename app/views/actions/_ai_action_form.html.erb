@@ -4,4 +4,15 @@
         <%= f.label :ai_model, class: "form-label", data: { step_action_target: "aiModelLabel" } %>
         <%= f.collection_select :ai_model, Action.ai_models, :code, :name, {prompt: true}, {class: 'form-control', data: { step_action_target: "aiModelSelect" }} %>
     </div>
+
+    <div class="mb-3">
+        <%= f.label :custom_attributes, class: "form-label" %>
+        <%= f.hidden_field :custom_attributes %>
+        <div data-controller="monaco"
+          data-monaco-initial-value="<%= f.object.custom_attributes.to_json %>"
+          data-monaco-language-value="json"
+          data-monaco-height-value="400px"
+          data-monaco-hidden-field-id-value="workflow_action_ai_action_attributes_custom_attributes"
+      ></div>
+    </div>
 </fieldset>

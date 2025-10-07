@@ -11,6 +11,11 @@
       <i class="fa fa-fw fa-lg fa-robot"></i> <span class="d-none d-xl-inline">AI Action</span>
     </a>
   </li>
+  <li class="nav-item" role="presentation">
+    <a href="#rag-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+      <i class="fa-solid fa-magnifying-glass"></i> <span class="d-none d-xl-inline">RAG</span>
+    </a>
+  </li>
 </ul>
 
 <!-- Tab content -->
@@ -49,6 +54,11 @@
       <%= f.label :order, class: "form-label" %>
       <%= f.number_field :order, class: "form-control", min: 1 %>
     </div>
+
+    <div class="form-check form-switch mb-3">
+      <%= f.check_box :allow_prompting, class: "form-check-input" %>
+      <%= f.label :allow_prompting, class: "form-check-label" %>
+    </div>  
   </div>
 
   <!-- Artifacts -->
@@ -73,6 +83,40 @@
       <%= render(partial: "ai_action_form", locals: {f: ai_action_form}) %>
     <% end %>
 
+  </div>
+
+   <!-- Artifacts -->
+  <div class="tab-pane fade" id="rag-tab" role="tabpanel">
+    <div class="row mb-3">
+      <div class="col-md-12 mb-3"><h5>RAG Artifacts</h5></div>
+
+      <%= f.collection_check_boxes :rag_artifact_ids, @workflow.all_artifacts, :id, :title do |b| %>
+        <div class="col-4">
+          <div class="form-check mb-2">
+            <%= b.check_box(class: "form-check-input") %>
+            <%= b.label(class: "form-check-label") %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+    <div class="row mb-3">
+      <div class="col-md-12 mb-3"><h5>Content Artifacts</h5></div>
+
+      <%= f.collection_check_boxes :content_artifact_ids, @workflow.all_artifacts, :id, :title do |b| %>
+        <div class="col-4">
+          <div class="form-check mb-2">
+            <%= b.check_box(class: "form-check-input") %>
+            <%= b.label(class: "form-check-label") %>
+          </div>
+        </div>
+      <% end %>
+    </div>
+
+
+
+
+    
   </div>
 
   <div class="d-flex gap-2">

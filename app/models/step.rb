@@ -17,9 +17,10 @@ class Step < ApplicationRecord
 
   def previous_step
     steps = workflow.steps.order(:order)
-    previous_step_index = steps.to_a.index(self) - 1
-    return self if (previous_step_index - 1) < 0
+    current_step_index = steps.to_a.index(self)
+    return self if (current_step_index - 1) < 0
 
+    previous_step_index = current_step_index - 1
     steps[previous_step_index]
   end
 end

@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_09_03_112356) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_05_234653) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -25,6 +25,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_03_112356) do
     t.boolean "has_ai_action"
     t.string "artifact_name"
     t.boolean "has_prompt_generator"
+    t.jsonb "rag_searcher", default: {}, null: false
+    t.jsonb "rag_query", default: {}, null: false
+    t.boolean "allow_prompting"
+    t.index ["rag_query"], name: "index_actions_on_rag_query", using: :gin
+    t.index ["rag_searcher"], name: "index_actions_on_rag_searcher", using: :gin
     t.index ["step_id"], name: "index_actions_on_step_id"
   end
 
@@ -61,7 +66,20 @@ ActiveRecord::Schema[8.0].define(version: 2025_09_03_112356) do
     t.bigint "action_id", null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
+    t.jsonb "custom_attributes", default: {}, null: false
     t.index ["action_id"], name: "index_ai_actions_on_action_id"
+    t.index ["custom_attributes"], name: "index_ai_actions_on_custom_attributes", using: :gin
+  end
+
+  create_table "ai_records", force: :cascade do |t|
+    t.string "source_type", null: false
+    t.string "ai_action", null: false
+    t.string "ai_model"
+    t.text "content"
+    t.jsonb "output", default: {}, null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.string "language"
   end
 
   create_table "artifacts", force: :cascade do |t|

@@ -9,11 +9,7 @@ export default class extends Controller {
 
   toggleAiModel() {
     const enabled = this.hasAiActionCheckboxTarget.checked
-    
-    this.aiModelSelectTarget.disabled = !enabled
-    this.hasPromptGeneratorCheckboxTarget.disabled = !enabled
-    
+    this.aiModelSelectTarget.disabled = !enabled    
     this.aiModelLabelTarget.classList.toggle("text-muted", !enabled)
-    this.hasPromptGeneratorLabelTarget.classList.toggle("text-muted", !enabled)
   }
 }

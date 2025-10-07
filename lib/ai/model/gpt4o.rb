@@ -19,7 +19,7 @@ module Ai
         )
       end
 
-      def ask(prompt, system_message: nil, temperature: 0.7, max_tokens: nil)
+      def ask(prompt, action, system_message: nil, temperature: 0.7, max_tokens: nil, sse: nil)
         messages = build_messages(prompt, system_message)
         log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 
@@ -153,6 +153,29 @@ module Ai
       rescue => e
         log_error(__method__, e)
         { success: false, error: e.message }
+      end
+
+      def credit_balance
+        url = "https://api.openai.com/dashboard/billing/credit_grants"
+        conn = Faraday.new(url: url) do |f|
+          f.request :authorization, "Bearer", Settings.reload!.apis.openai.access_token
+          f.adapter Faraday.default_adapter
+        end
+
+        response = conn.get
+        if response.success?
+          data = JSON.parse(response.body)
+          {
+            total_granted: data["total_granted"],
+            total_used: data["total_used"],
+            total_available: data["total_available"],
+            expires_at: data.dig("grants", "data", 0, "expires_at")
+          }
+        else
+          { error: "Failed to fetch credit balance: #{response.status}" }
+        end
+      rescue => e
+        { error: e.message }
       end
 
       private

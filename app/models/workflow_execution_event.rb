@@ -2,7 +2,7 @@ class WorkflowExecutionEvent < ApplicationRecord
   has_paper_trail
   belongs_to :workflow_execution, inverse_of: :events
   belongs_to :action
-  after_create :create_artifact
+  # after_create :create_artifact
 
   validates :workflow_execution, :action, presence: true
 
@@ -10,10 +10,64 @@ class WorkflowExecutionEvent < ApplicationRecord
   store_accessor :input_data
   store_accessor :output_data
 
-  attr_accessor :step_action
+  attr_accessor :step_action, :prompting
 
   def client(default_attribute = :name)
     workflow_execution&.client&.send(default_attribute)
+  end
+
+  def action_artifact
+    workflow_execution.artifacts.where(title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})")&.last
+  end
+
+  def create_artifact_with_stream(sse)
+    unless skip_artifact_create?
+      unless self.action.has_ai_action
+        sse.write({ progress: 75, message: "Creating artifact..." }, event: "status")
+        artifact = Artifact.find_or_initialize_by(
+          title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})",
+          resource_type: "WorkflowExecution",
+          resource_id: self.workflow_execution.id
+        )
+
+        artifact.update!(
+          description: self.action.description,
+          content: self.input_data
+        )
+      else
+        sse.write({ progress: 40, message: "Loading RAG content..." }, event: "status")
+        pinecone_results = set_rag_content
+        strip_rag_content!
+        prompt = "#{self.input_data}\n\n---\n\n#REFERENCE KNOWLEDGE BASE\n\n#{pinecone_results}"
+        ai_client = Action.find_ai_model_by_code(self.action.ai_action.ai_model).klass.new
+        sse.write({ progress: 60, message: "Processing prompt with #{self.action.ai_action.ai_model}..." }, event: "status")
+        result = ai_client.ask(prompt, self.action, sse: sse)
+
+        sse.write({ progress: 75, message: "Creating artifact..." }, event: "status")
+        artifact = Artifact.find_or_initialize_by(
+          title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})",
+          resource_type: "WorkflowExecution",
+          resource_id: self.workflow_execution.id
+        )
+
+        artifact.update!(
+          description: self.action.description,
+          content: result[:text]
+        )
+
+        self.update(output_data: result)
+      end
+    else
+      artifact = action_artifact
+    end
+
+    artifact
+  end
+
+  def skip_artifact_create?
+    unless self.prompting == true
+      self.workflow_execution.artifacts.where("title like ?", "%#{self.action.artifact_name}%").any?
+    end
   end
 
   private
@@ -42,7 +96,7 @@ class WorkflowExecutionEvent < ApplicationRecord
       strip_rag_content!
       prompt = "#{self.input_data}\n\n---\n\n#REFERENCE KNOWLEDGE BASE\n\n#{pinecone_results}"
       ai_client = Action.find_ai_model_by_code(self.action.ai_action.ai_model).klass.new
-      result = ai_client.ask(prompt)
+      result = ai_client.ask(prompt, self.action, sse: sse)
 
       artifact = Artifact.find_or_initialize_by(
         title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})",
@@ -58,10 +112,11 @@ class WorkflowExecutionEvent < ApplicationRecord
   end
 
   def parse_searcher_block
-    result = Hash.new { |h, k| h[k] = [] }
+    result = result = Hash.new { |h, k| h[k] = [] }
 
     # Extrai tudo que está dentro do bloco <<SEARCHER>>...<<SEARCHER>>
-    searcher_content = self.input_data[/<<SEARCHER>>([\s\S]*?)<<SEARCHER>>/m, 1]
+    # searcher_content = self.input_data[/<<SEARCHER>>([\s\S]*?)<<SEARCHER>>/m, 1]
+    searcher_content = self.action.rag_query[/<<SEARCHER>>([\s\S]*?)<<SEARCHER>>/m, 1]
 
     return result unless searcher_content
 

@@ -1,0 +1,29 @@
+<%= form_with model: @ai_record,
+              url: ai_records_path,
+              data: { controller: "ai-record", action: "submit->ai-record#submit" },
+              html: { class: "form-horizontal", id: "ai-record-transcription-form", enctype: "multipart/form-data" } do |f| %>
+
+  <%= f.hidden_field :source_type, value: "file" %>
+  <%= f.hidden_field :ai_action, value: "transcription" %>
+  <%= f.hidden_field :ai_model, value: "whisper-diarization" %>
+
+  <div class="form-group row mb-3">
+    <%= f.label :source_files, "Upload Audio", class: "form-label col-form-label col-md-3" %>
+    <div class="col-md-9">
+      <%= f.file_field :source_files,
+                       multiple: true,
+                       class: "form-control",
+                       accept: ".mp3,.mp4,.mpeg,.mpga,.m4a,.wav,.webm",
+                       data: { ai_record_target: "audioFiles" } %>
+      <span class="invalid-feedback"></span>
+      <small class="form-text text-muted">
+        Accepted formats: MP3, MP4, MPEG, MPGA, M4A, WAV, WEBM (multiple files allowed)
+      </small>
+    </div>
+  </div>
+  <div class="form-group row mb-3" id="transcription-monaco">
+  </div>
+  <div class="text-end">
+    <%= f.submit "Transcribe", class: "btn btn-primary", data: { ai_record_target: "submitButton" } %>
+  </div>
+<% end %>

@@ -1,3 +1,5 @@
+<!-- app/views/workflow_executions/show.html.erb -->
+
 <% breadcrumb :workflow_execution, @execution %>
 <h1 class="h4 mb-3">
   Workflow Execution <%= @execution.id %> —
@@ -123,10 +125,10 @@
           <div class="card-header">
             <strong>Step: <%= current_step.title %></strong>
             <% total=current_step.actions.count %>
-              <% done= @execution.events.where(action_id: current_step.actions.ids, status: 1).count %>
-                <span class="badge bg-secondary ms-2">
-                  <%= "#{done}/#{total} actions completed" %>
-                </span>
+            <% done= @execution.events.where(action_id: current_step.actions.ids, status: 1).count %>
+            <span class="badge bg-secondary ms-2">
+              <%= "#{done}/#{total} actions completed" %>
+            </span>
           </div>
           <div class="card-body">
             <% current_step.actions.order(:order).each do |action| %>
@@ -156,69 +158,90 @@
                         Artifact
                       </a>
                     </li>
+                    <li class="nav-item" role="presentation">
+                      <a href="#"
+                        class="nav-link"
+                        data-controller="ai-record-launcher"
+                        data-action="click->ai-record-launcher#open">
+                        AI Collect
+                      </a>
+                    </li>
                   </ul>
 
                   <!-- Tab content -->
-                <%= form_with(model: [@execution.client, @execution, WorkflowExecutionEvent.new], html: {data:
-                  {controller: 'workflow-execution-event' , workflow_execution_event_workflow_execution_value:
-                  @execution.to_json, workflow_execution_event_action_value: action.to_json(include: [:ai_action,
-                  :step])}}, local: true) do |f| %>
-                  <div class="tab-content p-3 border border-top-0 bg-white">
-                    <!-- Form para criar WorkflowExecutionEvent -->
+                  <%= form_with(model: [@execution.client, @execution, WorkflowExecutionEvent.new], html: {data:
+                    {controller: 'workflow-execution-event' , workflow_execution_event_workflow_execution_value: @execution.to_json,
+                    workflow_execution_event_action_value: action.to_json(include: [:ai_action, :step])}}, local: true) do |f| %>
 
-                      <!-- General -->
-                      <div class="tab-pane fade <%= 'show active' unless artifact %>" id="general-tab" role="tabpanel">
-                      
-                                          <%= f.hidden_field :action_id, value: action.id %>
+                      <div class="tab-content p-3 border border-top-0 bg-white">
+                        <div class="tab-pane fade <%= 'show active' unless artifact %>" id="general-tab" role="tabpanel">
+                          <%= f.hidden_field :action_id, value: action.id %>
 
-                                          <!-- Input com Monaco -->
-                                          <div class="mb-3">
-                                            <%= f.label :input_data, action.description.html_safe, class: "form-label" %>
-                                            <%= f.hidden_field :input_data, value: action.content %>
+                          <!-- Input com Monaco -->
+                          <div class="mb-3">
+                            <%= f.label :input_data, action.description.html_safe, class: "form-label" %>
+                            <%= f.hidden_field :input_data, value: action.content %>
+                            <div id="action-content"
+                              data-controller="monaco" 
+                              data-monaco-initial-value="<%= action.content %>"
+                              data-monaco-language-value="markdown" data-monaco-height-value="400px"
+                              data-monaco-hidden-field-id-value="workflow_execution_event_input_data"
+                              data-workflow-execution-event-target="monacoEditor">
+                            </div>
+                          </div>
 
-                                            <div data-controller="monaco" data-monaco-initial-value="<%= action.content %>"
-                                              data-monaco-language-value="markdown" data-monaco-height-value="400px"
-                                              data-monaco-hidden-field-id-value="workflow_execution_event_input_data"
-                                              data-workflow-execution-event-target="monacoEditor">
-                                            </div>
-                                          </div>
-                          <%= button_tag type: :submit, class: 'btn btn-secondary', name: "workflow_execution_event[step_action]", value: "prompt_it" do %>
-                            <i class="fa-solid fa-reply"></i>
-                            <% if artifact %>
-                              Prompt it again
-                            <% else %>
-                              Prompt it
+                          <% if action.allow_prompting? %>
+                            <%= button_tag type: :submit, 
+                                class: 'btn btn-secondary',
+                                name: "workflow_execution_event[step_action]",
+                                value: "prompt_it",
+                                data: { action: "click->workflow-execution-event#submitWithStreaming" } do %>
+                              <i class="fa-solid fa-reply"></i>
+                              <% if artifact %>Prompt it again<% else %>Prompt it<% end %>
                             <% end %>
-                          <% end %>    
-
-
-                      </div>
-
-                      <!-- Artifacts -->
-                      <div class="tab-pane fade <%= 'show active' if artifact %>" id="artifacts-tab" role="tabpanel" style="max-height: 45em; overflow-y: auto; background: #eee; border-radius: .5em; padding: 1em;">
-                        
-                        <% if artifact %>
-                          <%= markdown_to_html(artifact.content) %>
-                        <% else %>
-                          Click "Prompt It" to generate this artifact
-                        <% end %>
-                      </div>
-
-                  </div>
-                      <div class="row mt-3">
-                        <div class="col-6">                          
-                          
+                          <% end %>
                         </div>
 
-                        <div class="col-6 d-flex justify-content-end">
-                          <%= button_tag type: :submit, class: 'btn btn-outline-primary me-2', name: "workflow_execution_event[step_action]", value: "previous" do %>
-                          <i class="fa-solid fa-arrow-left-long"></i>
-                          Previous
+                        <!-- Artifacts -->
+                        <div class="tab-pane fade <%= 'show active' if artifact %>" id="artifacts-tab" role="tabpanel" style="max-height: 45em; overflow-y: auto; background: #eee; border-radius: .5em; padding: 1em;">
+                          <% if artifact %>
+                            <%= markdown_to_html(artifact.content) %>
+                          <% else %>
+                            Click "Prompt It" to generate this artifact
                           <% end %>
+                        </div>
+                      </div>
+                      <div class="row mt-3">
+                        <div class="col-4">
+                          <%= button_tag type: :submit, 
+                              class: 'btn btn-outline-primary me-2', 
+                              name: "workflow_execution_event[step_action]", 
+                              value: "previous",
+                              disabled: @execution.current_action&.very_first_action?,
+                              data: { action: "click->workflow-execution-event#submitWithStreaming" } do %>
+                            <i class="fa-solid fa-arrow-left-long"></i> Previous
+                          <% end %>                          
+                        </div>
+                        <div class="col-4 d-flex justify-content-center">
+                          <%= button_tag type: :submit, 
+                              class: 'btn btn-outline-warning me-2', 
+                              name: "workflow_execution_event[step_action]", 
+                              value: "skip",
+                              disabled: @execution.current_action&.very_last_action?,
+                              data: { action: "click->workflow-execution-event#submitWithStreaming" } do %>
+                            <i class="fas fa-forward-fast"></i> Skip
+                          <% end %>   
+                        </div>
 
-                          <%= button_tag type: :submit, class: 'btn btn-primary', name: "workflow_execution_event[step_action]", value: "next" do %>
-                            Next
-                            <i class="fa-solid fa-arrow-right-long"></i>
+                        <div class="col-4 d-flex justify-content-end">
+
+
+                          <%= button_tag type: :submit, 
+                              class: 'btn btn-primary', 
+                              name: "workflow_execution_event[step_action]", 
+                              value: "next",
+                              data: { action: "click->workflow-execution-event#submitWithStreaming" } do %>
+                            Next <i class="fa-solid fa-arrow-right-long"></i>
                           <% end %>
                         </div>
                       </div>
@@ -255,9 +278,9 @@
             <% end %>
           </div>
         </div>
-        <% else %>
-          <div class="alert alert-warning">No current step/action defined for this execution.</div>
-          <% end %>
+      <% else %>
+        <div class="alert alert-warning">No current step/action defined for this execution.</div>
+      <% end %>
   </div>
 
   <!-- Coluna direita: artefatos -->
@@ -309,6 +332,7 @@
                         <%= f.text_field :title, class: "form-control" %>
                     </div>
                     <div class="mb-3">
+                      <%= artifact.id %>
                       <%= f.label :content, class: "form-label" %>
                         <%= f.text_area :content, rows: 6, class: "form-control d-none" %>
                           <div data-controller="monaco" data-monaco-initial-value="<%= artifact.content %>"

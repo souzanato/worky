@@ -4,10 +4,10 @@ class Artifact < ApplicationRecord
   has_one_attached :file
 
   # ⚡ flag interna pra evitar loop de callback
-  attr_accessor :skip_markdown_callback
+  attr_accessor :skip_markdown_callback, :result
 
   # 🔹 Só dispara se content ou file mudarem
-  after_commit :upsert_to_pinecone, on: %i[create update], if: :pinecone_relevant_change?
+  # after_commit :upsert_to_pinecone, on: %i[update], if: :pinecone_relevant_change?
   after_commit :delete_from_pinecone, on: :destroy
   after_save :generate_markdown_file, if: :should_generate_markdown_file?
 
@@ -16,8 +16,6 @@ class Artifact < ApplicationRecord
   after_commit :extract_file_content, on: :create
 
   after_update :change_action_title_references, if: :saved_change_to_title?
-
-
 
   def content_to_markdown!
     begin
@@ -42,13 +40,13 @@ class Artifact < ApplicationRecord
         Return exclusively the input text, unchanged in wording, but formatted with proper Markdown syntax.
       MARKDOWN
 
-      response = gpt.ask(self.content, system_message: system_message)&.dig(:text)
+      response = gpt.ask(self.content, nil, system_message: system_message)&.dig(:text)
 
       if response.present?
         if persisted?
           self.skip_markdown_callback = true # 🚫 evita loop
           update!(content: response)
-          upsert_to_pinecone
+          # upsert_to_pinecone
         else
           self.content = response
         end
@@ -75,7 +73,6 @@ class Artifact < ApplicationRecord
       .downcase
   end
 
-  private
   def change_action_title_references
     old_title, new_title = saved_change_to_title
     Action.where("content like ?", "%#{old_title}%").each do |a|

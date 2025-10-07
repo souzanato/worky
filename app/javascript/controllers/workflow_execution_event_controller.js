@@ -1,4 +1,5 @@
 import { Controller } from "@hotwired/stimulus"
+import { WorkflowStreaming } from "../workflow_streaming"
 
 // Connects to data-controller="workflow-execution-event"
 export default class extends Controller {
@@ -16,6 +17,34 @@ export default class extends Controller {
     if (this.actionValue.has_prompt_generator === true) {
       this.createPromptGenerator()
     }
+    this.streaming = new WorkflowStreaming()
+  }
+
+  // Interceptar submit para usar streaming
+  submitWithStreaming(event) {
+    event.preventDefault()
+    
+    const form = event.target.closest('form')
+    const formData = new FormData(form)
+    const clickedButton = event.currentTarget 
+    
+    // Capturar dados do form - estruturado como Rails espera
+    const eventData = {
+      workflow_execution_event: {
+        action_id: formData.get('workflow_execution_event[action_id]'),
+        input_data: formData.get('workflow_execution_event[input_data]'),
+        step_action: clickedButton.value || 'prompt_it'
+      }
+    }
+    
+    // URL para streaming
+    const execution = this.workflowExecutionValue
+    const client_id = execution.client_id
+    const execution_id = execution.id
+    const url = `/clients/${client_id}/workflow_executions/${execution_id}/workflow_execution_events/stream`
+    
+    // Iniciar streaming com POST
+    this.streaming.start(url, eventData)  // ← ou this.streaming.startWithPost(url, eventData)
   }
 
   updateMonaco(content, readOnly) {
@@ -25,6 +54,12 @@ export default class extends Controller {
         detail: { content, readOnly }
       })
     );
+  }
+
+  disconnect() {
+    if (this.streaming) {
+      this.streaming.cleanup()
+    }
   }
 
   async createPromptGenerator() {

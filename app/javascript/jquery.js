@@ -6,7 +6,8 @@ window.jQuery = $
 
 // só depois importa o blockUI
 require("jquery-blockui")
-import { blockPage, unblockPage } from "./helpers/loading"
+import { blockPage, unblockPage, blockProgress } from "./helpers/loading"
 
 window.blockPage = blockPage
 window.unblockPage = unblockPage
+window.blockProgress = blockProgress

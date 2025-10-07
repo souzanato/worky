@@ -1,0 +1,27 @@
+<%= form_with model: @ai_record,
+              url: ai_records_path,
+              data: { controller: "ai-record", action: "submit->ai-record#submit" },
+              html: { class: "form-horizontal", id: "ai-record-url-form" } do |f| %>
+
+  <%= f.hidden_field :source_type, value: "text" %>
+  <%= f.hidden_field :ai_action, value: "web-scrapping" %>
+  <%= f.hidden_field :ai_model, value: "web-scrapping" %>
+
+  <div class="form-group row mb-3">
+    <%= f.label :content, "Web Page URL", class: "form-label col-form-label col-md-3" %>
+    <div class="col-md-9">
+      <%= f.text_field :content,
+                       placeholder: "https://example.com/...",
+                       class: "form-control",
+                       data: { ai_record_target: "urlLink" } %>
+      <span class="invalid-feedback"></span>
+      <small class="form-text text-muted">
+        Enter a full URL (e.g. https://example.com/article). The AI will extract and analyze the web page content.
+      </small>
+    </div>
+  </div>
+
+  <div class="text-end">
+    <%= f.submit "Extract Content", class: "btn btn-primary", data: { ai_record_target: "submitButton" } %>
+  </div>
+<% end %>
