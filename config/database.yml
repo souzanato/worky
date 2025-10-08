@@ -1,28 +1,41 @@
-development:
+default: &default
   adapter: postgresql
-  database: <%= ENV['WORKY_DATABASE'] %>
+  encoding: utf8
+  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
   host: <%= ENV['WORKY_HOST'] %>
   username: <%= ENV['WORKY_USER'] %>
   password: <%= ENV['WORKY_PASSWORD'] %>
-  encoding: utf8
   port: 5432
 
+development:
+  primary:
+    <<: *default
+    database: <%= ENV['WORKY_DATABASE'] || 'worky-dev' %>
+  queue:
+    <<: *default
+    database: <%= ENV['WORKY_QUEUE_DATABASE'] || 'worky-dev-queue' %>
+    migrations_paths: db/queue_migrate
+
+test:
+  primary:
+    <<: *default
+    database: worky-test
+  queue:
+    <<: *default
+    database: worky-test-queue
+    migrations_paths: db/queue_migrate
+
 production: &production
-  adapter: postgresql
-  database: <%= ENV['WORKY_DATABASE'] %>
-  host: <%= ENV['WORKY_HOST'] %>
-  username: <%= ENV['WORKY_USER'] %>
-  password: <%= ENV['WORKY_PASSWORD'] %>
-  encoding: utf8
-  pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 15 } %>
-  port: 5432
+  primary:
+    <<: *default
+    database: <%= ENV['WORKY_DATABASE'] %>
+  queue:
+    <<: *default
+    database: <%= ENV['WORKY_QUEUE_DATABASE'] %>
+    migrations_paths: db/queue_migrate
 
 cable:
   <<: *production
 
-queue:
-  <<: *production
-
 cache:
   <<: *production
-
