@@ -2,6 +2,7 @@ if ENV.fetch("RAILS_ENV", "development") == "development"
   threads_count = ENV.fetch("RAILS_MAX_THREADS", 3)
   threads threads_count, threads_count
 
+  # Development: pode usar 0.0.0.0 para acessar de outras máquinas
   port ENV.fetch("PORT", 3000)
 
   plugin :tmp_restart
@@ -10,7 +11,6 @@ if ENV.fetch("RAILS_ENV", "development") == "development"
   pidfile ENV["PIDFILE"] if ENV["PIDFILE"]
 end
 
-# config/puma.rb
 if ENV.fetch("RAILS_ENV", "development") == "production"
   # 3 workers (deixa 1 core mais livre)
   workers Integer(ENV.fetch("WEB_CONCURRENCY") { 3 })
@@ -20,7 +20,14 @@ if ENV.fetch("RAILS_ENV", "development") == "production"
   threads threads_count, threads_count
 
   preload_app!
-  port ENV.fetch("PORT") { 3000 }
+
+  # 🔒 SEGURANÇA: Bind apenas em localhost
+  # Nginx faz proxy reverso para esta porta
+  bind "tcp://127.0.0.1:#{ENV.fetch('PORT', 3000)}"
+
+  # OU use Unix socket (melhor performance):
+  # bind "unix:///opt/worky/tmp/sockets/puma.sock"
+
   environment "production"
 
   # Timeout longo para streaming
