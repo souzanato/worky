@@ -63,6 +63,10 @@ group :development do
   gem "letter_opener", "~> 1.10"
 end
 
+group :production do
+  gem "dotenv-rails"
+end
+
 gem "devise", "~> 4.9"
 
 gem "route_translator", "~> 15.2"
