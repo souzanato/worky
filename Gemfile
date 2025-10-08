@@ -104,3 +104,5 @@ gem "redcarpet", "~> 3.6"
 gem "ferrum", "~> 0.17.1"
 
 gem "replicate-ruby", "~> 0.2.3"
+
+gem "redis", "~> 5.0"
