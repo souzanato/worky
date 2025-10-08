@@ -6,6 +6,7 @@ import "@hotwired/turbo-rails"
 import "./controllers"
 
 // 3) Dependências que o Color Admin costuma usar (mínimo viável)
+import "./pace_bridge"
 import "pace-js"
 import Cookies from "js-cookie"
 
