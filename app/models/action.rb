@@ -53,13 +53,14 @@ class Action < ApplicationRecord
   end
 
   def prompt_generator(workflow_execution)
-    self.workflow_execution = workflow_execution
-    pinecones_results = get_pinecone_results
+    begin
+      self.workflow_execution = workflow_execution
+      pinecones_results = get_pinecone_results
 
-    # Remove blocos SEARCHER do conteúdo
-    self.content = content.gsub(/<<SEARCHER>>(.+?)<<SEARCHER>>/m, "").strip
+      # Remove blocos SEARCHER do conteúdo
+      self.content = content.gsub(/<<SEARCHER>>(.+?)<<SEARCHER>>/m, "").strip
 
-    prompt = <<-MARKDOWN
+      prompt = <<-MARKDOWN
 You are an input filler.
 Your task is to replace the inputs, question, or instruction enclosed in double braces syntax {{inputs, question or instruction}} inside the TEMPLATE.
 
@@ -80,10 +81,13 @@ Rules:
 <<<RAG DATA>>>#{pinecones_results}<<<END RAG DATA>>>
     MARKDOWN
 
-    gpt5 = Ai::Model::Gpt5.new
-    result = gpt5.ask(prompt, self, force_minimal_effort: true)
-    return self.content unless result[:text]
-    result[:text]
+      gpt5 = Ai::Model::Gpt5.new
+      result = gpt5.ask(prompt, self, force_minimal_effort: true)
+      return self.content unless result[:text]
+      result[:text]
+    rescue Exception => e
+      Rails.logger.error "❌ Prompt Generator Error: #{e.class} - #{e.message}"
+    end
   end
 
   def parse_searcher_block
