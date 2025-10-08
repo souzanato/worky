@@ -1,0 +1,9 @@
+<script>
+  // Dispara evento de erro
+  document.dispatchEvent(new CustomEvent('prompt:error', {
+    detail: {
+      actionId: <%= action_id %>,
+      error: <%= error.to_json.html_safe %>
+    }
+  }));
+</script>

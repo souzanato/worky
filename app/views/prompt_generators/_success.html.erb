@@ -1,0 +1,9 @@
+<script>
+  // Dispara evento para atualizar Monaco Editor
+  document.dispatchEvent(new CustomEvent('prompt:generated', {
+    detail: {
+      actionId: <%= action_id %>,
+      prompt: <%= prompt.to_json.html_safe %>
+    }
+  }));
+</script>

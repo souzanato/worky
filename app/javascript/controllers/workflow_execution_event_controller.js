@@ -1,3 +1,4 @@
+// app/javascript/controllers/workflow_execution_event_controller.js
 import { Controller } from "@hotwired/stimulus"
 import { WorkflowStreaming } from "../workflow_streaming"
 
@@ -13,12 +14,40 @@ export default class extends Controller {
   ]
 
   connect() {
+    this.subscribeToPromptChannel()
+
+    this.boundHandlePromptGenerated = this.handlePromptGenerated.bind(this)
+    this.boundHandlePromptError = this.handlePromptError.bind(this)
+
+    document.addEventListener('prompt:generated', this.boundHandlePromptGenerated)
+    document.addEventListener('prompt:error', this.boundHandlePromptError)
+
     // safe check se ai_action existe e se has_prompt_generator é true
     if (this.actionValue.has_prompt_generator === true) {
       this.createPromptGenerator()
     }
     this.streaming = new WorkflowStreaming()
   }
+
+  subscribeToPromptChannel() {
+    // O canal será subscrito automaticamente no HTML
+  }
+
+  handlePromptGenerated(event) {
+    if (event.detail.actionId === this.actionValue.id) {
+      this.updateMonaco(event.detail.prompt, false)
+      unblockPage()
+    }
+  }
+
+  handlePromptError(event) {
+    if (event.detail.actionId === this.actionValue.id) {
+      this.updateMonaco(`Error: ${event.detail.error}`, false)
+      unblockPage()
+      alert(`Error generating prompt: ${event.detail.error}`)
+    }
+  }
+
 
   // Interceptar submit para usar streaming
   submitWithStreaming(event) {
@@ -60,13 +89,17 @@ export default class extends Controller {
     if (this.streaming) {
       this.streaming.cleanup()
     }
+
+    // Remove event listeners
+    document.removeEventListener('prompt:generated', this.boundHandlePromptGenerated)
+    document.removeEventListener('prompt:error', this.boundHandlePromptError)
   }
 
   async createPromptGenerator() {
     try {
       // 🔒 Desabilita editor e mostra msg
-      blockPage("Wait", "Prompt Generator is working...")
-      this.updateMonaco("Aguarde o prompt generator...", true);
+      blockPage("Wait", "Prompt Generator is working in background...")
+      this.updateMonaco("⏳ Generating prompt... this may take a few minutes.", true);
 
       const url = `/workflow_executions/${this.workflowExecutionValue.id}/actions/${this.actionValue.id}/prompt_generators`;
 
@@ -86,14 +119,17 @@ export default class extends Controller {
       if (!response.ok) throw new Error(`HTTP error ${response.status}`);
 
       const data = await response.json();
-
-      // ✅ Atualiza editor
-      console.log(data.prompt)
-      this.updateMonaco(data.prompt, false);
-      unblockPage();
+      
+      // Job enfileirado com sucesso
+      console.log("Prompt generation started:", data.message);
+      
+      // A UI será atualizada via Turbo Stream quando o job terminar
+      // (via handlePromptGenerated ou handlePromptError)
+      
     } catch (error) {
       console.error("Erro ao criar Prompt Generator:", error);
-      this.updateMonaco("Erro ao criar Prompt Generator", false);
+      this.updateMonaco("❌ Error starting prompt generation", false);
+      unblockPage();
     }
   }
 }

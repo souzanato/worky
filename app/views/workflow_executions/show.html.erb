@@ -1,6 +1,11 @@
 <!-- app/views/workflow_executions/show.html.erb -->
 
 <% breadcrumb :workflow_execution, @execution %>
+
+<%= turbo_stream_from "prompt_#{current_user.id}" %>
+<div id="monaco-content-action-<%= @execution.current_action&.id %>" style="display: none;"></div>
+
+
 <h1 class="h4 mb-3">
   Workflow Execution <%= @execution.id %> —
     <span class="text-muted">

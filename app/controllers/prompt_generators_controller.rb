@@ -3,13 +3,17 @@ class PromptGeneratorsController < ApplicationController
   before_action :set_workflow_execution
 
   def create
-    begin
-      prompt = @action.prompt_generator(@workflow_execution)
-    rescue Exception => e
-      render json: { errors: "There was an error creating the prompt generator. Error: #{e}" }, status: :unprocessable_entity
-    else
-      render json: { prompt: prompt }
-    end
+    # Enfileira job em background
+    PromptGeneratorJob.perform_later(
+      @action.id,
+      @workflow_execution.id,
+      current_user.id
+    )
+
+    render json: {
+      status: "processing",
+      message: "Prompt being generated..."
+    }
   end
 
   private
