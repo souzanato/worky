@@ -31,10 +31,7 @@ class Ability
     #
 
     if user.current_role.code == "admin"
-      can :read, :artifacts_menu
-      can :read, :clients_menu
-      can :read, :settings_menu
-      can :read, :users_menu
+      can :manage, :all
     end
 
     if user.current_role.code == "dev"
