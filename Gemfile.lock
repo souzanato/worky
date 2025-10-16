@@ -540,7 +540,7 @@ DEPENDENCIES
   rolify (~> 6.0)
   route_translator (~> 15.2)
   rubocop-rails-omakase
-  ruby-openai (~> 8.2)
+  ruby-openai (~> 8.3)
   solid_cable
   solid_cache
   solid_queue
