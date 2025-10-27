@@ -1,8 +1,8 @@
 google:
   service: GCS
-  project: "teu-projeto-id"
+  project: "<%= ENV['GOOGLE_STORAGE_PROJECT'] %>"
   credentials: <%= Rails.root.join("config/gcs_credentials.json") %>
-  bucket: "meu-app-storage"
+  bucket: "<%= ENV['GOOGLE_BUCKET_NAME'] %>"
 
 test:
   service: Disk
