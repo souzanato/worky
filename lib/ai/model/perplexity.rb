@@ -42,19 +42,22 @@ module Ai
         messages = build_messages(prompt, system_message)
         log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 
+
         response = post_chat(messages: messages, action: action, stream: false)
         parsed = parse_response(response)
-
         full_text = parsed[:text]
         all_citations = parsed[:citations]
         batch_count = 1
+
+        sse.write({ progress: 60, message: "PROMPT INICIAL: #{prompt}" }, event: "status") if sse
+        sse.write({ progress: 60, message: "RESULT INICIAL: #{full_text} #{all_citations}" }, event: "status") if sse
 
         # Verificação mais inteligente de continuação
         needs_continuation = should_continue?(full_text)
         log_info(__method__, "Primeira resposta - precisa continuar? #{needs_continuation} (length: #{full_text&.length || 0})")
 
         progress = 61
-        sse.write({ progress: 60, message: "Starting batch processing..." }, event: "status") if sse and needs_continuation
+        sse.write({ progress: progress, message: "Starting batch processing..." }, event: "status") if sse and needs_continuation
         while needs_continuation && batch_count < max_batch_attempts
           sse.write({ progress: progress, message: "Processing batch #{batch_count + 1}..." }, event: "status") if sse
 
@@ -66,6 +69,9 @@ module Ai
             response = post_chat(messages: continuation_messages, action: action, stream: false)
             continuation_parsed = parse_response(response)
             new_content = continuation_parsed[:text]
+
+            sse.write({ progress: 60, message: "PROMPT #{batch_count}: #{prompt}" }, event: "status") if sse
+            sse.write({ progress: 60, message: "RESULT #{batch_count}: #{full_text} #{all_citations}" }, event: "status") if sse
 
             # Verifica se o novo conteúdo é substancial
             if new_content.strip.length < 100
