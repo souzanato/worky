@@ -8,7 +8,7 @@ class Pinecone::Chunker
   DEFAULT_CHUNK_SIZE = 1200      # Tamanho alvo de cada chunk (caracteres)
   MIN_CHUNK_SIZE = 50            # Tamanho mínimo mais flexível
   OVERLAP_SIZE = 150             # Sobreposição entre chunks para manter contexto
-  MAX_PAYLOAD_SIZE = 4_000_000   # ~4MB (limite do Pinecone é 4.194.304 bytes)
+  MAX_PAYLOAD_SIZE = 3_000_000   # ~4MB (limite do Pinecone é 4.194.304 bytes)
 
   def initialize(min_chunk_size: MIN_CHUNK_SIZE)
     @pinecone_api_key = Settings.reload!.apis.pinecone.api_key
