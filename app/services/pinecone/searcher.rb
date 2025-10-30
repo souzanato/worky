@@ -1,9 +1,13 @@
-# app/services/pinecone/searcher.rb
+require "net/http"
+require "json"
+require "zlib"
+require "base64"
+
 class Pinecone::Searcher
   def initialize
-    @pinecone_api_key = Settings.reload!.apis.pinecone.api_key
+    @pinecone_api_key   = Settings.reload!.apis.pinecone.api_key
     @pinecone_index_url = Settings.reload!.apis.pinecone.index_name
-    @openai_api_key = Settings.reload!.apis.openai.access_token
+    @openai_api_key     = Settings.reload!.apis.openai.access_token
   end
 
   def search(query, top_k: 5, include_metadata: true, filter: {})
@@ -26,7 +30,6 @@ class Pinecone::Searcher
   def search_artifacts(query, artifact_ids: [], top_k: 5)
     filter = {}
     filter[:artifact_id] = { "$in": artifact_ids } unless artifact_ids.empty?
-
     search(query, top_k: top_k, filter: filter)
   end
 
@@ -58,7 +61,7 @@ class Pinecone::Searcher
     if response.code == "200"
       result["data"][0]["embedding"]
     else
-      raise "Erro na OpenAI: #{result['error']['message']}"
+      raise "Erro na OpenAI: #{result.dig('error', 'message') || response.body}"
     end
   end
 
@@ -76,7 +79,6 @@ class Pinecone::Searcher
       topK: top_k,
       includeMetadata: include_metadata
     }
-
     query_params[:filter] = filter unless filter.empty?
 
     request.body = query_params.to_json
@@ -95,13 +97,27 @@ class Pinecone::Searcher
     matches = results["matches"] || []
 
     matches.map do |match|
+      metadata = match["metadata"] || {}
+
+      # Suporte à compressão (text_gz) com fallback para metadata["text"]
+      text =
+        if metadata["text_gz"]
+          begin
+            Zlib::Inflate.inflate(Base64.decode64(metadata["text_gz"]))
+          rescue
+            "[Erro ao descomprimir texto]"
+          end
+        else
+          metadata["text"]
+        end
+
       {
         id: match["id"],
         score: match["score"],
-        metadata: match["metadata"] || {},
-        text: match.dig("metadata", "text"),
-        artifact_id: match.dig("metadata", "artifact_id"),
-        chunk_index: match.dig("metadata", "chunk_index")
+        metadata: metadata,
+        text: text,
+        artifact_id: metadata["artifact_id"],
+        chunk_index: metadata["chunk_index"]
       }
     end
   end

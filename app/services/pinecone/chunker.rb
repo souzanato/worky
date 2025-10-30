@@ -1,31 +1,31 @@
-# app/services/pinecone/chunker.rb
 require "net/http"
 require "json"
 require "uri"
+require "zlib"
+require "base64"
 
 class Pinecone::Chunker
   # Configurações padrão para o chunking
   DEFAULT_CHUNK_SIZE = 1200      # Tamanho alvo de cada chunk (caracteres)
-  MIN_CHUNK_SIZE = 50            # Tamanho mínimo mais flexível
-  OVERLAP_SIZE = 150             # Sobreposição entre chunks para manter contexto
-  MAX_PAYLOAD_SIZE = 3_000_000   # ~4MB (limite do Pinecone é 4.194.304 bytes)
+  MIN_CHUNK_SIZE     = 50        # Tamanho mínimo (flexível)
+  OVERLAP_SIZE       = 150       # Sobreposição entre chunks (reserva futura)
+  MAX_PAYLOAD_SIZE   = 1_900_000 # ~1.9MB (limite prático da API é 2MB)
 
   def initialize(min_chunk_size: MIN_CHUNK_SIZE)
-    @pinecone_api_key = Settings.reload!.apis.pinecone.api_key
+    @pinecone_api_key   = Settings.reload!.apis.pinecone.api_key
     @pinecone_index_url = Settings.reload!.apis.pinecone.index_name
-    @openai_api_key = Settings.reload!.apis.openai.access_token
-    @min_chunk_size = min_chunk_size
+    @openai_api_key     = Settings.reload!.apis.openai.access_token
+    @min_chunk_size     = min_chunk_size
 
-    # Validações
-    raise "PINECONE_API_KEY não configurada" unless @pinecone_api_key.present?
+    raise "PINECONE_API_KEY não configurada"   unless @pinecone_api_key.present?
     raise "PINECONE_INDEX_HOST não configurada" unless @pinecone_index_url.present?
-    raise "OPENAI_API_KEY não configurada" unless @openai_api_key.present?
+    raise "OPENAI_API_KEY não configurada"     unless @openai_api_key.present?
   end
 
   # Método principal que recebe o texto e processa tudo
   def process_document(text, document_id:, metadata: {})
     Rails.logger.info "🔄 Iniciando processamento do documento #{document_id}..."
-    Rails.logger.info "📝 Texto original: #{text.length} caracteres"
+    Rails.logger.info "📝 Texto original: #{text.to_s.length} caracteres"
 
     if text.blank?
       Rails.logger.warn "⚠️ Texto vazio fornecido"
@@ -60,7 +60,7 @@ class Pinecone::Chunker
     }
   rescue => e
     Rails.logger.error "❌ Erro no processamento: #{e.class.name} - #{e.message}"
-    Rails.logger.error "Backtrace: #{e.backtrace.first(3).join(' | ')}"
+    Rails.logger.error "Backtrace: #{e.backtrace.first(5).join(' | ')}"
     { success: false, error: e.message, chunks_count: 0, document_id: document_id }
   end
 
@@ -74,25 +74,27 @@ class Pinecone::Chunker
     markdown_sections = split_by_markdown_sections(text)
     Rails.logger.info "Dividido em #{markdown_sections.length} seções Markdown"
 
-    markdown_sections.each_with_index do |section, i|
+    markdown_sections.each do |section|
       heading = section[:heading]
       content = section[:content]
 
-      section_chunks = split_large_section(content)
-
-      if section_chunks.length == 1
-        chunks << { heading: heading, text: section_chunks.first }
-      else
-        section_chunks.each { |subchunk| chunks << { heading: heading, text: subchunk } }
+      split_large_section(content).each do |subchunk|
+        next if subchunk.strip.length < @min_chunk_size
+        chunks << { heading: heading, text: subchunk }
       end
     end
 
-    valid_chunks = chunks.reject { |c| c[:text].strip.length < @min_chunk_size }
-    if valid_chunks.empty? && chunks.any?
+    # fallback relaxado se tudo foi rejeitado
+    if chunks.empty?
       Rails.logger.warn "Todos os chunks foram rejeitados. Relaxando filtro"
-      valid_chunks = chunks.reject { |c| c[:text].strip.length < 10 }
+      markdown_sections.each do |section|
+        split_large_section(section[:content]).each do |subchunk|
+          chunks << { heading: section[:heading], text: subchunk } if subchunk.strip.length >= 10
+        end
+      end
     end
-    valid_chunks
+
+    chunks
   end
 
   def split_by_markdown_sections(text)
@@ -102,9 +104,7 @@ class Pinecone::Chunker
 
     text.each_line do |line|
       if line.match?(/^#+\s+/)
-        unless current_content.strip.empty?
-          sections << { heading: current_heading, content: current_content.strip }
-        end
+        sections << { heading: current_heading, content: current_content.strip } unless current_content.strip.empty?
         current_heading = line.strip
         current_content = ""
       else
@@ -158,12 +158,16 @@ class Pinecone::Chunker
     embeddings_data = []
     chunks.each_with_index do |chunk, index|
       Rails.logger.debug "Gerando embedding para chunk #{index} (#{chunk[:heading]})"
-      embedding = get_embedding(chunk[:text])
+      embedding   = get_embedding(chunk[:text])
+
+      # Compressão do texto para reduzir payload (gzip + Base64)
+      compressed  = Base64.strict_encode64(Zlib::Deflate.deflate(chunk[:text]))
+
       embeddings_data << {
         id: "#{document_id}_chunk_#{index}",
         values: embedding,
         metadata: base_metadata.merge({
-          text: chunk[:text],
+          text_gz: compressed,         # texto comprimido (fallback: manter 'text' se quiser)
           heading: chunk[:heading],
           chunk_index: index,
           document_id: document_id,
@@ -216,13 +220,30 @@ class Pinecone::Chunker
     send_batch(http, request, batch) unless batch.empty?
   end
 
-  def send_batch(http, request, batch)
+  def send_batch(http, request, batch, retries: 3)
+    return if batch.empty?
+
     request.body = { vectors: batch }.to_json
-    response = http.request(request)
-    unless response.code == "200"
-      error_details = JSON.parse(response.body) rescue response.body
-      raise "Erro no Pinecone: #{error_details}"
+    attempt = 0
+
+    begin
+      attempt += 1
+      response = http.request(request)
+      if response.code == "200"
+        Rails.logger.debug "✅ Lote de #{batch.size} embeddings enviado com sucesso (#{request.body.bytesize} bytes)"
+      else
+        error_details = JSON.parse(response.body) rescue response.body
+        raise "Erro no Pinecone: #{error_details}"
+      end
+    rescue => e
+      if attempt < retries
+        Rails.logger.warn "⚠️ Falha no envio (tentativa #{attempt}): #{e.message}. Reenviando..."
+        sleep(1.5 * attempt)
+        retry
+      else
+        Rails.logger.error "❌ Erro permanente no upload: #{e.message}"
+        raise
+      end
     end
-    Rails.logger.debug "✅ Lote de #{batch.size} embeddings enviado com sucesso"
   end
 end
