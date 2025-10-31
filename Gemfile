@@ -89,7 +89,7 @@ gem "config", "~> 5.6"
 
 gem "hirb", "~> 0.7.3"
 
-gem "ruby-openai", "~> 8.2"
+gem "ruby-openai", "~> 8.3"
 
 gem "anthropic", "~> 1.7"
 
