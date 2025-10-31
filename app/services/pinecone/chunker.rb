@@ -66,18 +66,26 @@ class Pinecone::Chunker
         pc.chunk_size = chunk_text.length
       end
 
+      # --- 🔧 Ajuste começa aqui ---
+      meta = {
+        document_id: document_id,
+        chunk_index: i,
+        text_hash: text_hash,
+        heading: base_metadata[:heading]
+      }.compact  # remove nils
+
+      # converte todos os valores pra string (garante compatibilidade)
+      meta.transform_values!(&:to_s)
+      # --- 🔧 Ajuste termina aqui ---
+
       {
         id: "#{document_id}_chunk_#{i}",
         values: embedding,
-        metadata: {
-          document_id: document_id,
-          chunk_index: i,
-          text_hash: text_hash,
-          heading: base_metadata[:heading]
-        }
+        metadata: meta
       }
     end
   end
+
 
   # --- embedding OpenAI
   def get_embedding(text)
