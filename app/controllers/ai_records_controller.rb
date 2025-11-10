@@ -1,5 +1,6 @@
 class AiRecordsController < ApplicationController
   include ActionController::Live
+  before_action :set_workflow_execution
 
   def new
     @ai_record = AiRecord.new
@@ -30,6 +31,10 @@ class AiRecordsController < ApplicationController
   end
 
   private
+
+  def set_workflow_execution
+    @workflow_execution = WorkflowExecution.find(params[:workflow_execution_id])
+  end
 
   def ai_record_params
     params.require(:ai_record).permit(

@@ -9,6 +9,7 @@ Rails.application.routes.draw do
     }
     resources :users
     resources :workflows do
+      resources :ai_collect_configs
       resources :steps, only: [ :new, :create, :edit, :update, :destroy ] do
         member do
           patch :move_up
@@ -38,14 +39,13 @@ Rails.application.routes.draw do
     end
 
     resources :workflow_executions, only: [] do
+      resources :ai_records
       resources :artifacts do
         member do
           get :download
         end
       end
     end
-
-    resources :ai_records
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 

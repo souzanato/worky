@@ -1,5 +1,4 @@
-<%= form_with model: @ai_record,
-              url: ai_records_path,
+<%= form_with model: [@workflow_execution, @ai_record],
               data: { controller: "ai-record", action: "submit->ai-record#submit" },
               html: { class: "form-horizontal", id: "ai-record-url-form" } do |f| %>
 
@@ -10,13 +9,13 @@
   <div class="form-group row mb-3">
     <%= f.label :content, "Web Page URL", class: "form-label col-form-label col-md-3" %>
     <div class="col-md-9">
-      <%= f.text_field :content,
+      <%= f.text_area :content,
                        placeholder: "https://example.com/...",
                        class: "form-control",
                        data: { ai_record_target: "urlLink" } %>
       <span class="invalid-feedback"></span>
       <small class="form-text text-muted">
-        Enter a full URL (e.g. https://example.com/article). The AI will extract and analyze the web page content.
+        Enter a full URL (e.g. https://example.com/article), one url per line. The AI will extract and analyze the web page content.
       </small>
     </div>
   </div>

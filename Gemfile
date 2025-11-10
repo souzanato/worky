@@ -108,3 +108,5 @@ gem "replicate-ruby", "~> 0.2.3"
 gem "redis", "~> 5.0"
 
 gem "google-cloud-storage", "~> 1.57"
+
+gem "vessel", "~> 0.2.0"

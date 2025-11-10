@@ -1,5 +1,4 @@
-<%= form_with model: @ai_record,
-              url: ai_records_path,
+<%= form_with model: [@workflow_execution, @ai_record],
               data: { controller: "ai-record", action: "submit->ai-record#submit" },
               html: { class: "form-horizontal", id: "ai-record-youtube-form" } do |f| %>
 
@@ -16,7 +15,26 @@
                        data: { ai_record_target: "youtubeLink" } %>
       <span class="invalid-feedback"></span>
       <small class="form-text text-muted">
-        Paste a valid YouTube link (e.g. https://youtube.com/watch?v=abc123). The AI will extract and transcribe the video content automatically.
+        Paste a valid YouTube link (e.g. https://youtube.com/watch?v=abc123). 
+      </small>
+    </div>
+  </div>
+
+  <div class="form-group row mb-3">
+    <%= f.label :language, "Language", class: "form-label col-form-label col-md-3" %>
+    <div class="col-md-9">
+      <%= f.collection_select :language, 
+            whisper_like_languages, 
+            :title, 
+            :title, 
+            {prompt: true}, 
+            {
+              class: 'form-select',
+              data: {ai_record_target: "youtubeLanguage"}
+            } %>
+      <span class="invalid-feedback"></span>
+      <small class="form-text text-muted">
+        Please, select the video language
       </small>
     </div>
   </div>

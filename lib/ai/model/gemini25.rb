@@ -69,7 +69,7 @@ module Ai
         end
       end
 
-      def transcribe(file_path)
+      def transcribe(file_path: audio_path)
         response = self.class.post(
           "/models/#{@model}:generateContent?key=#{@api_key}",
           headers: { "Content-Type" => "application/json" },

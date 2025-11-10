@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_05_234653) do
+ActiveRecord::Schema[8.0].define(version: 2025_10_08_155024) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -71,6 +71,20 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_234653) do
     t.index ["custom_attributes"], name: "index_ai_actions_on_custom_attributes", using: :gin
   end
 
+  create_table "ai_collect_configs", force: :cascade do |t|
+    t.string "title"
+    t.string "code"
+    t.text "description"
+    t.text "prompt"
+    t.string "ai_model"
+    t.bigint "workflow_id", null: false
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.boolean "active"
+    t.boolean "ask_language"
+    t.index ["workflow_id"], name: "index_ai_collect_configs_on_workflow_id"
+  end
+
   create_table "ai_records", force: :cascade do |t|
     t.string "source_type", null: false
     t.string "ai_action", null: false
@@ -99,6 +113,19 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_234653) do
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.string "email"
+  end
+
+  create_table "pinecone_chunks", force: :cascade do |t|
+    t.string "document_id", null: false
+    t.integer "chunk_index", null: false
+    t.string "text_hash", null: false
+    t.text "text", null: false
+    t.string "heading"
+    t.integer "chunk_size"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+    t.index ["document_id", "chunk_index"], name: "index_pinecone_chunks_on_document_id_and_chunk_index", unique: true
+    t.index ["text_hash"], name: "index_pinecone_chunks_on_text_hash", unique: true
   end
 
   create_table "roles", force: :cascade do |t|
@@ -213,6 +240,7 @@ ActiveRecord::Schema[8.0].define(version: 2025_10_05_234653) do
   add_foreign_key "active_storage_attachments", "active_storage_blobs", column: "blob_id"
   add_foreign_key "active_storage_variant_records", "active_storage_blobs", column: "blob_id"
   add_foreign_key "ai_actions", "actions"
+  add_foreign_key "ai_collect_configs", "workflows"
   add_foreign_key "steps", "workflows"
   add_foreign_key "workflow_execution_events", "actions"
   add_foreign_key "workflow_execution_events", "workflow_executions"

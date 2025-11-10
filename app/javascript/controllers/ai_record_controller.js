@@ -2,7 +2,7 @@ import { Controller } from "@hotwired/stimulus"
 import { AiRecordStreaming } from "../ai_record_streaming"
 
 export default class extends Controller {
-  static targets = ["youtubeLink", "urlLink", "audioFiles"]
+  static targets = ["youtubeLink", "youtubeLanguage", "urlLink", "audioFiles"]
 
   connect() {
     this.element.setAttribute("novalidate", "novalidate")
@@ -17,11 +17,52 @@ export default class extends Controller {
   // GENERIC URL VALIDATION
   // =============================
   validateUrl(input, label) {
+    const raw = (input.value || "").trim()
+
+    if (!raw) {
+      return this.setError(input, `${label} is required`)
+    }
+
+    // Quebra em linhas reais
+    const lines = raw.split("\n").map(line => line.trim()).filter(l => l !== "")
+
+    // Regex para URL http/https
+    const regex = /^(https?:\/\/)[^\s/$.?#].[^\s]*$/i
+
+    for (const [index, line] of lines.entries()) {
+      const urls = line.split(/\s+/) // separa tokens por espaço
+
+      if (urls.length !== 1) {
+        return this.setError(
+          input,
+          `Line ${index + 1} must contain exactly one URL`
+        )
+      }
+
+      if (!regex.test(urls[0])) {
+        return this.setError(
+          input,
+          `Invalid URL on line ${index + 1}`
+        )
+      }
+    }
+
+    return this.clearError(input)
+  }
+
+  validateYoutubeLanguage(input, label) {
     const value = (input.value || "").trim()
-    const regex = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w\.-]*)*\/?$/i
 
     if (!value) return this.setError(input, `${label} is required`)
-    if (!regex.test(value)) return this.setError(input, `Please enter a valid ${label}`)
+    return this.clearError(input)
+  }
+
+  validateYoutubeUrl(input, label) {
+    const value = (input.value || "").trim()
+    const regex = /^(https?:\/\/)?(www\.)?(youtube\.com|youtu\.be)\/.+$/i
+
+    if (!value) return this.setError(input, `${label} is required`)
+    if (!regex.test(value)) return this.setError(input, `Please enter a valid YouTube link`)
     return this.clearError(input)
   }
 
@@ -76,7 +117,7 @@ export default class extends Controller {
     let isValid = true
 
     if (this.hasYoutubeLinkTarget)
-      isValid = this.validateUrl(this.youtubeLinkTarget, "YouTube link") && isValid
+      isValid = this.validateYoutubeUrl(this.youtubeLinkTarget, "YouTube link") && this.validateYoutubeLanguage(this.youtubeLanguageTarget, "YouTube Language") && isValid
 
     if (this.hasUrlLinkTarget)
       isValid = this.validateUrl(this.urlLinkTarget, "Web page URL") && isValid

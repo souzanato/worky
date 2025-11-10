@@ -2,14 +2,19 @@
 import { Controller } from "@hotwired/stimulus"
 
 export default class extends Controller {
+  static values = {
+    workflowExecutionId: Number
+  }
+
   open(event) {
     event.preventDefault()
 
     let modalEl = document.getElementById("aiRecordModal")
 
     if (!modalEl) {
+      console.log(this.workflowExecutionIdValue)
       // Carrega o conteúdo via Turbo Stream
-      fetch("/ai_records/new", { headers: { Accept: "text/vnd.turbo-stream.html" } })
+      fetch(`/workflow_executions/${this.workflowExecutionIdValue}/ai_records/new`, { headers: { Accept: "text/vnd.turbo-stream.html" } })
         .then(response => response.text())
         .then(html => {
           // Cria um template temporário pra processar o Turbo Stream

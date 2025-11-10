@@ -35,6 +35,11 @@
         </a>
       </li>
       <li class="nav-item" role="presentation">
+        <a href="#ai-collect-configs-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
+          <i class="fa fa-fw fa-lg fa-paperclip"></i> <span class="d-none d-xl-inline">Ai Collect</span>
+        </a>
+      </li>
+      <li class="nav-item" role="presentation">
         <a href="#steps-tab" data-bs-toggle="tab" class="nav-link" aria-selected="false" role="tab">
           <i class="fa fa-fw fa-lg fa-stairs"></i> <span class="d-none d-xl-inline">Steps & Actions</span>
         </a>
@@ -69,6 +74,11 @@
       <!-- Artifacts -->
       <div class="tab-pane fade" id="artifacts-tab" role="tabpanel">
         <%= render "shared/artifacts", resource: @workflow %>
+      </div>
+
+      <!-- Ai Collect -->
+      <div class="tab-pane fade" id="ai-collect-configs-tab" role="tabpanel">
+        <%= render "ai_collect_configs/list", workflow: @workflow %>
       </div>
 
       <!-- Steps & Actions -->

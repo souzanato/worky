@@ -16,13 +16,13 @@ module Ai
       # @param language [String] (opcional) idioma esperado ("pt", "en", etc.)
       # @param format [String] (opcional) formato da resposta: "json", "text", "srt", "verbose_json"
       # @return [Hash] resposta da API contendo o texto transcrito
-      def transcribe(file_path, language: nil, format: "json")
-        raise ArgumentError, "File not found: #{file_path}" unless File.exist?(file_path)
+      def transcribe(audio_path: file_path, language: nil, format: "json")
+        raise ArgumentError, "File not found: #{audio_path}" unless File.exist?(audio_path)
 
         response = @client.audio.transcribe(
           parameters: {
             model: "whisper-1", # Whisper Large V3 Turbo (identificador oficial)
-            file: File.open(file_path, "rb"),
+            file: File.open(audio_path, "rb"),
             response_format: format
           }.compact
         )

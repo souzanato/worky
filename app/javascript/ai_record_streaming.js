@@ -119,6 +119,30 @@ export class AiRecordStreaming {
       this.onTranscriptionResultReceived(this.result)
     }
 
+    // Resultado do Youtube
+    if (event.status === "youtube-result") {
+      this.result = event.data
+      
+      // Mostra resumo se houver erros
+      if (event.summary && event.summary.failed > 0) {
+        console.warn(`⚠️ Summary: ${event.summary.successful} successful, ${event.summary.failed} failed`)
+      }
+      
+      this.onYoutubeResultReceived(this.result)
+    }
+
+        // Resultado do Youtube
+    if (event.status === "web-scrapping-result") {
+      this.result = event.data
+      
+      // Mostra resumo se houver erros
+      if (event.summary && event.summary.failed > 0) {
+        console.warn(`⚠️ Summary: ${event.summary.successful} successful, ${event.summary.failed} failed`)
+      }
+      
+      this.onWebScrappingReceived(this.result)
+    }
+
     // ⚠️ NOVO: Erro em arquivo individual (não para o processo)
     if (event.status === "file_error") {
       console.error(`❌ File error [${event.file_index}/${event.total_files}]: ${event.file}`)
@@ -184,6 +208,69 @@ export class AiRecordStreaming {
     this.appendToMonaco(formattedText + errorSection)
   }
 
+  onWebScrappingReceived(result) {
+    console.log("Processing Web Scrapping result:", result)
+    
+    // Separa sucessos e erros
+    const successful = result.filter(item => item.status === "success")
+    const failed = result.filter(item => item.status === "error")
+    
+    if (failed.length > 0) {
+      console.warn(`⚠️ ${failed.length} link(s) failed:`)
+      failed.forEach(item => {
+        console.warn(`   - Error: ${item.error}`)
+      })
+    }
+    
+    // Formata apenas os sucessos
+    const formattedText = this.formatWebScrappings(successful)
+
+    // Adiciona seção de erros se houver
+    let errorSection = ''
+    if (failed.length > 0) {
+      errorSection = '\n\n## ⚠️ Failed Transcriptions\n\n'
+      failed.forEach(item => {
+        errorSection += `- **ERROR**: ${item.error}\n`
+      })
+    }
+
+    console.log(formattedText)
+    // Atualiza o Monaco Editor
+    this.appendToMonaco(formattedText + errorSection)
+  }
+
+  onYoutubeResultReceived(result) {
+    console.log("Processing Youtube result:", result)
+    
+    // Separa sucessos e erros
+    window.result = result
+    const successful = result.filter(item => item.status === "success")
+    const failed = result.filter(item => item.status === "error")
+    
+    if (failed.length > 0) {
+      console.warn(`⚠️ ${failed.length} videos(s) failed:`)
+      failed.forEach(item => {
+        console.warn(`   - Error: ${item.error}`)
+      })
+    }
+    
+    // Formata apenas os sucessos
+    console.log("successful", successful)
+    const formattedText = this.formatYoutubeVideos(successful)
+
+    // Adiciona seção de erros se houver
+    let errorSection = ''
+    if (failed.length > 0) {
+      errorSection = '\n\n## ⚠️ Failed Transcriptions\n\n'
+      failed.forEach(item => {
+        errorSection += `- **ERROR**: ${item.error}\n`
+      })
+    }
+    
+    // Atualiza o Monaco Editor
+    this.appendToMonaco(formattedText + errorSection)
+  }
+
   formatTranscriptions(transcriptions) {
     return transcriptions
       .filter(item => item.status === "success") // Garante que só formata sucessos
@@ -193,6 +280,33 @@ export class AiRecordStreaming {
         const text = item.result.text
         
         return `## ${number}. ${filename}\n\n${text}\n\n`
+      })
+      .join('---\n\n')
+  }
+
+  formatWebScrappings(webScrappings) {
+    window.webScrappings = webScrappings;
+    return webScrappings
+      .filter(item => item.status === "success") // Garante que só formata sucessos
+      .map((item, index) => {
+        const number = index + 1
+        const url = item.url
+        const text = item.text
+        
+        return `## ${number}. ${url}\n\n${text}\n\n`
+      })
+      .join('---\n\n')
+  }
+
+  formatYoutubeVideos(videos) {
+    window.videos = videos;
+    return videos
+      .filter(item => item.status === "success") // Garante que só formata sucessos
+      .map((item, index) => {
+        const number = index + 1
+        const text = item.result.text
+        
+        return `## ${number}. \n\n${text}\n\n`
       })
       .join('---\n\n')
   }

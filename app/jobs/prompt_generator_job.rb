@@ -1,3 +1,4 @@
+# app/jobs/prompt_generator_job.rb
 class PromptGeneratorJob < ApplicationJob
   queue_as :default
 

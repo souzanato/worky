@@ -1,0 +1,5 @@
+class AddAskLanguageToAiCollectConfigs < ActiveRecord::Migration[8.0]
+  def change
+    add_column :ai_collect_configs, :ask_language, :boolean
+  end
+end

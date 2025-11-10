@@ -1,11 +1,10 @@
-<%= form_with model: @ai_record,
-              url: ai_records_path,
+<%= form_with model: [@workflow_execution, @ai_record],
               data: { controller: "ai-record", action: "submit->ai-record#submit" },
               html: { class: "form-horizontal", id: "ai-record-transcription-form", enctype: "multipart/form-data" } do |f| %>
 
   <%= f.hidden_field :source_type, value: "file" %>
   <%= f.hidden_field :ai_action, value: "transcription" %>
-  <%= f.hidden_field :ai_model, value: "whisper-diarization" %>
+  <%= f.hidden_field :ai_model, value: "whisper-1" %>
 
   <div class="form-group row mb-3">
     <%= f.label :source_files, "Upload Audio", class: "form-label col-form-label col-md-3" %>

@@ -1,0 +1,4 @@
+<%= turbo_stream.update "ai-collect-configs-list-#{@workflow.class.name}-#{@workflow.id}",
+      partial: "ai_collect_configs/list",
+      locals: { workflow: @workflow.reload } %>
+<%= turbo_stream.update "modal", "" %>

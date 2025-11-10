@@ -98,7 +98,7 @@ export default class extends Controller {
   async createPromptGenerator() {
     try {
       // 🔒 Desabilita editor e mostra msg
-      blockPage("Wait", "Prompt Generator is working in background...")
+      blockPage("Wait", "Prompt Generator is working...")
       this.updateMonaco("⏳ Generating prompt... this may take a few minutes.", true);
 
       const url = `/workflow_executions/${this.workflowExecutionValue.id}/actions/${this.actionValue.id}/prompt_generators`;

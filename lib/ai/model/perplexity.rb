@@ -42,7 +42,6 @@ module Ai
         messages = build_messages(prompt, system_message)
         log_debug(__method__, "Prompt recebido: #{prompt.inspect}")
 
-
         response = post_chat(messages: messages, action: action, stream: false)
         parsed = parse_response(response)
         full_text = parsed[:text]

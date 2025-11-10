@@ -20,7 +20,16 @@ class User < ApplicationRecord
   validates :first_name, :last_name, :email, presence: true
 
   def to_admin
-    add_role(:admin)
+    update(current_role_code: add_role(:admin).name)
+  end
+
+  def to_not_admin
+    self.remove_role(:admin)
+    update(current_role_code: nil)
+  end
+
+  def to_dev
+    update(current_role_code: add_role(:dev).name)
   end
 
   def full_name
@@ -90,6 +99,7 @@ class User < ApplicationRecord
       if confirmed?
         # "desconfirmar"
         self.confirmed_at = nil
+        self.to_not_admin
         # opcional: preparar reenvio de confirmação
         self.confirmation_token     = Devise.friendly_token if respond_to?(:confirmation_token=)
         self.confirmation_sent_at   = Time.current if respond_to?(:confirmation_sent_at=)
@@ -98,6 +108,7 @@ class User < ApplicationRecord
         self.confirmed_at = Time.current
         # opcional: limpar token
         self.confirmation_token = nil if respond_to?(:confirmation_token=)
+        self.to_admin
       end
       save!(validate: false)
     elsif has_attribute?(:confirmed) # coluna booleana simples

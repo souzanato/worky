@@ -35,11 +35,122 @@ class AiRecord < ApplicationRecord
   private
 
   def process_text_source(sse)
-    sse.write({ progress: 20, message: "Analyzing text content..." })
-    sleep 1
-    sse.write({ progress: 60, message: "Performing semantic analysis..." })
-    sleep 1
-    sse.write({ progress: 90, message: "Finalizing..." })
+    if ai_action == "youtube-transcription"
+      yt_videos = []
+
+      sse.write({ progress: 30, message: "Starting YouTube video analysis..." })
+      sleep 2
+      sse.write({ progress: 55, message: "Loading #{ai_model}..." })
+      ai_instance = Class.new.extend(AiModels::ClassMethods).find_ai_model_by_code(self.ai_model)&.klass&.new
+      sleep 2
+      sse.write({ progress: 75, message: "Processing with #{ai_model}..." })
+      result = ai_instance.ask(transcribe_prompt, nil)
+      yt_videos << { result: result, status: "success" }
+      sse.write({ progress: 90, message: "Finishing up processing..." })
+      sleep 3
+      sse.write({ progress: 95, message: "Done" })
+      sse.write({
+        status: "youtube-result",
+        data: yt_videos,
+        summary: {
+          total: 1,
+          successful: 1,
+          failed: 0
+        }
+      }, event: "youtube-result")
+    end
+
+    if ai_action == "web-scrapping"
+      links = self.content.split("\n")
+      progress = 30
+      if links.any?
+        sse.write({ progress: progress, message: "Starting #{links.count} link#{links&.count > 1 ? '(s)' : ''} web scrapping..." })
+        progress_step = 65/links.count
+        results = []
+        links.each_with_index do |link, index|
+          begin
+            progress = progress + progress_step
+            sse.write({ progress: progress, message: "Analysing link #{index + 1} of #{links.count}..." })
+            ai_instance = Ai::Model::Vessel.new(link)
+            doc_body = ai_instance.ask
+            extractor = WebScraper::SimpleContentExtractor.new(doc_body.to_html)
+            result = extractor.extract
+            results << { url: link, status: "success", text: result[:text] }
+          rescue Exception => e
+            results << { url: link, status: "error", text: "There as an error with the tlink #{link}" }
+          end
+        end
+
+        sse.write({ progress: 95, message: "Done" })
+        sleep 3
+
+        sse.write({
+          status: "web-scrapping-result",
+          data: results,
+          summary: {
+            total: results.count,
+            successful: results.count,
+            failed: 0
+          }
+        }, event: "web-scrapping-result")
+
+      else
+        sse.write({
+          status: "youtube-result",
+          data: result,
+          summary: {
+            total: 1,
+            successful: 1,
+            failed: 0
+          }
+        }, event: "youtube-result")
+      end
+    end
+  end
+
+  def transcribe_prompt
+    prompt = <<-markdown
+You are a transcription AI specialized in extracting and documenting content from YouTube videos.
+
+CRITICAL REQUIREMENT:
+- The language of the video is **#{self.language}**.
+- You must perform both the transcription and the description **strictly in this language**.
+- Do **not** translate or summarize in any other language.
+
+Instructions:
+1. Access the following YouTube video: #{self.content}
+2. Generate the following two sections, formatted in valid Markdown only:
+
+---
+
+## 🗒️ Video Description
+Write a concise yet complete description of what happens in the video, in **#{self.content}**.
+Include key topics, speakers, tone, and overall context.
+Do not summarize beyond what is visually or audibly present.
+
+---
+
+## 🎧 Full Transcription
+Write the **complete** transcription of the spoken audio in **#{self.language}**.
+Follow Markdown syntax strictly:
+- Separate paragraphs with blank lines.
+- Use `**Speaker:**` for identifiable speakers.
+- Use inline code formatting for timestamps (e.g., `00:01:25`) if available.
+- Do **not** include bullet points, summaries, metadata, or commentary beyond the transcription itself.
+- Do not add introductions or closings beyond the two sections above.
+
+---
+
+Output format:
+✅ Markdown only — clean, valid, and ready for direct rendering.
+
+Remember:
+- Write everything in **#{self.language}**.
+- Do not translate, detect, or change the language.
+- Do not include explanations, system messages, or additional text.
+    markdown
+
+    prompt
   end
 
   def process_multiple_files(sse, uploaded_files: nil)
@@ -110,7 +221,6 @@ class AiRecord < ApplicationRecord
               file.open(&:path)
             end
 
-          # ⚠️ AQUI É ONDE O ERRO DO REPLICATE ACONTECE
           result = ai_instance.transcribe(audio_path: temp_path)
 
           # Sucesso!
