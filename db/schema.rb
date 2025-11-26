@@ -10,9 +10,17 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_10_08_155024) do
+ActiveRecord::Schema[8.0].define(version: 2025_11_26_171913) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
+
+  create_table "access_tokens", force: :cascade do |t|
+    t.string "client"
+    t.string "token"
+    t.boolean "active"
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
+  end
 
   create_table "actions", force: :cascade do |t|
     t.string "title"

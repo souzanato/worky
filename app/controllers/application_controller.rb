@@ -2,13 +2,17 @@ class ApplicationController < ActionController::Base
   # Only allow modern browsers supporting webp images, web push, badges, import maps, CSS nesting, and CSS :has.
   allow_browser versions: :modern
 
-  before_action :authenticate_user!
+  before_action :authenticate_user!, unless: :api_call?
   before_action :configure_permitted_parameters, if: :devise_controller?
   before_action :set_paper_trail_whodunnit
   before_action :prepare_meta_tags, if: -> { request.get? }
 
 
   protected
+
+  def api_call?
+    controller_path.include?("api/")
+  end
 
   def configure_permitted_parameters
     # Sign up (registration)

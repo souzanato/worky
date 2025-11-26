@@ -46,6 +46,12 @@ Rails.application.routes.draw do
         end
       end
     end
+
+    namespace :api do
+      namespace :v1 do
+        resources :web_scrapings, only: [ :show, :create ]
+      end
+    end
   end
   # Define your application routes per the DSL in https://guides.rubyonrails.org/routing.html
 
