@@ -2,17 +2,32 @@
 <fieldset class="mb-3">
     <div class="mb-3">
         <%= f.label :ai_model, class: "form-label", data: { step_action_target: "aiModelLabel" } %>
-        <%= f.collection_select :ai_model, Action.ai_models, :code, :name, {prompt: true}, {class: 'form-control', data: { step_action_target: "aiModelSelect" }} %>
+        <%= f.collection_select :ai_model,
+            Ai::OpenRouter::Assistant.list_models, 
+            :id,
+            :name, 
+            {prompt: true}, 
+            {
+                class: 'form-control', 
+                data: { 
+                    step_action_target: "aiModelSelect",
+                    controller: 'select2'
+                }} %>
     </div>
+
+    <div class="form-check form-switch mb-3">
+      <%= f.check_box :best_model_picker, class: "form-check-input", data: { step_action_target: "hasBestModalPickerCheckbox" } %>
+      <%= f.label :best_model_picker, class: "form-check-label" %>
+    </div>  
 
     <div class="mb-3">
         <%= f.label :custom_attributes, class: "form-label" %>
         <%= f.hidden_field :custom_attributes %>
         <div data-controller="monaco"
-          data-monaco-initial-value="<%= f.object.custom_attributes.to_json %>"
+          data-monaco-initial-value="<%= custom_attributes_initial_value(f.object.custom_attributes) %>"
           data-monaco-language-value="json"
           data-monaco-height-value="400px"
-          data-monaco-hidden-field-id-value="workflow_action_ai_action_attributes_custom_attributes"
-      ></div>
+          data-monaco-hidden-field-id-value="workflow_action_ai_action_attributes_custom_attributes">
+        </div>
     </div>
 </fieldset>

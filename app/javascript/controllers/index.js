@@ -47,3 +47,6 @@ application.register("ai-record", AiRecordController)
 
 import AiRecordLauncherController from "./ai_record_launcher_controller"
 application.register("ai-record-launcher", AiRecordLauncherController)
+
+import Select2Controller from "./select2_controller"
+application.register("select2", Select2Controller)

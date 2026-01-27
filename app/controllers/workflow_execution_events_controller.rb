@@ -160,7 +160,8 @@ end
   # placeholder: avança execução pro próximo action
   def advance_execution!(event)
     step = event.action.last_action? ? event.action.step.next_step : event.action.step
-    next_action = step.actions.where("actions.id > ?", event.action.id).first
+    order = event.action.last_action? ? 0 : event.action.order
+    next_action = step.actions.where("actions.order > ?", order).first
     @execution.update_columns(current_action_id: next_action&.id, status: :running) if next_action
     previous_event = @execution.events.where(action_id: event.action_id)&.last
     previous_event.nil? ? event.update!(status: 1) : previous_event.update_column(:status, 1)

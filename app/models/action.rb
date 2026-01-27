@@ -80,11 +80,12 @@ Rules:
 
 <<<RAG DATA>>>#{pinecones_results}<<<END RAG DATA>>>
     MARKDOWN
+      ai_client = Ai::OpenRouter::Assistant.new
+      request_hash = {messages: [{role: "user", content: prompt}], model: "openai/gpt-5-nano"}
+      result = ai_client.chat_completion(**request_hash)
 
-      gpt5 = Ai::Model::Gpt5.new
-      result = gpt5.ask(prompt, self, force_minimal_effort: true)
-      return self.content unless result[:text]
-      result[:text]
+      return self.content unless result&.dig(:choices, 0, :message, :content)
+      result&.dig(:choices, 0, :message, :content)
     rescue Exception => e
       Rails.logger.error "❌ Prompt Generator Error: #{e.class} - #{e.message}"
     end

@@ -41,7 +41,8 @@
     "postcss-cli": "^11.0.1",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "sass": "^1.90.0"
+    "sass": "^1.90.0",
+    "select2": "^4.1.0-rc.0"
   },
   "browserslist": [
     "defaults"

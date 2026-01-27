@@ -1,0 +1,250 @@
+require_relative 'openrouter_client'
+
+# Inicializar o cliente
+client = Ai::OpenRouter::Assistant.new(
+  api_key: 'sua-chave-api-aqui',
+  site_url: 'https://seu-site.com',  # Opcional
+  site_name: 'Seu App'                # Opcional
+)
+
+# ============================================
+# EXEMPLO 1: Requisição simples (não-streaming)
+# ============================================
+puts "=== EXEMPLO 1: Requisição Simples ==="
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: 'user', content: 'Qual é o sentido da vida?' }
+  ]
+)
+
+puts "Resposta: #{response[:choices][0][:message][:content]}"
+puts "Tokens usados: #{response[:usage][:total_tokens]}"
+puts "ID da geração: #{response[:id]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 2: Com parâmetros avançados
+# ============================================
+puts "=== EXEMPLO 2: Com Parâmetros Avançados ==="
+
+response = client.chat_completion(
+  model: 'anthropic/claude-3.5-sonnet',
+  messages: [
+    { role: 'system', content: 'Você é um assistente prestativo e conciso.' },
+    { role: 'user', content: 'Explique inteligência artificial em 3 frases.' }
+  ],
+  temperature: 0.7,
+  max_tokens: 150,
+  top_p: 0.9
+)
+
+puts "Resposta: #{response[:choices][0][:message][:content]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 3: Streaming
+# ============================================
+puts "=== EXEMPLO 3: Streaming ==="
+
+client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: 'user', content: 'Conte uma história curta sobre um robô.' }
+  ],
+  stream: true
+) do |chunk|
+  content = chunk.dig(:choices, 0, :delta, :content)
+  print content if content
+end
+
+puts "\n\n"
+
+# ============================================
+# EXEMPLO 4: Usando helper para mensagens com imagem
+# ============================================
+puts "=== EXEMPLO 4: Mensagem com Imagem ==="
+
+image_message = Ai::OpenRouter::Assistant.create_image_message(
+  text: 'O que você vê nesta imagem?',
+  image_url: 'https://exemplo.com/imagem.jpg',
+  detail: 'high'
+)
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [image_message]
+)
+
+puts "Resposta: #{response[:choices][0][:message][:content]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 5: Usando ferramentas (tools)
+# ============================================
+puts "=== EXEMPLO 5: Tool Calling ==="
+
+# Criar uma ferramenta
+weather_tool = Ai::OpenRouter::Assistant.create_tool(
+  name: 'get_weather',
+  description: 'Obtém a previsão do tempo para uma localização',
+  parameters: {
+    type: 'object',
+    properties: {
+      location: {
+        type: 'string',
+        description: 'A cidade e estado, ex: São Paulo, SP'
+      },
+      unit: {
+        type: 'string',
+        enum: ['celsius', 'fahrenheit'],
+        description: 'A unidade de temperatura'
+      }
+    },
+    required: ['location']
+  }
+)
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: 'user', content: 'Qual é a temperatura em São Paulo?' }
+  ],
+  tools: [weather_tool],
+  tool_choice: 'auto'
+)
+
+if response[:choices][0][:message][:tool_calls]
+  tool_call = response[:choices][0][:message][:tool_calls][0]
+  puts "Ferramenta chamada: #{tool_call[:function][:name]}"
+  puts "Argumentos: #{tool_call[:function][:arguments]}"
+end
+puts "\n"
+
+# ============================================
+# EXEMPLO 6: Formato de resposta JSON
+# ============================================
+puts "=== EXEMPLO 6: Resposta em JSON ==="
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { 
+      role: 'user', 
+      content: 'Liste 3 linguagens de programação com seus anos de criação em formato JSON' 
+    }
+  ],
+  response_format: { type: 'json_object' }
+)
+
+puts "Resposta JSON: #{response[:choices][0][:message][:content]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 7: Assistant Prefill
+# ============================================
+puts "=== EXEMPLO 7: Assistant Prefill ==="
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: 'user', content: 'Qual é o sentido da vida?' },
+    { role: 'assistant', content: 'Na minha opinião, o sentido da vida é' }
+  ]
+)
+
+puts "Resposta completada: #{response[:choices][0][:message][:content]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 8: Buscar informações de geração
+# ============================================
+puts "=== EXEMPLO 8: Buscar Stats da Geração ==="
+
+# Primeiro, fazer uma requisição
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  messages: [
+    { role: 'user', content: 'Olá!' }
+  ]
+)
+
+generation_id = response[:id]
+puts "Generation ID: #{generation_id}"
+
+# Depois, buscar as estatísticas completas
+generation_stats = client.get_generation(generation_id)
+puts "Estatísticas completas:"
+puts generation_stats.inspect
+puts "\n"
+
+# ============================================
+# EXEMPLO 9: Listar modelos disponíveis
+# ============================================
+puts "=== EXEMPLO 9: Listar Modelos ==="
+
+models = client.list_models
+puts "Total de modelos: #{models[:data]&.length || 0}"
+
+# Mostrar os primeiros 5 modelos
+if models[:data]
+  puts "\nPrimeiros 5 modelos:"
+  models[:data].first(5).each do |model|
+    puts "  - #{model[:id]}"
+  end
+end
+puts "\n"
+
+# ============================================
+# EXEMPLO 10: Tratamento de erros
+# ============================================
+puts "=== EXEMPLO 10: Tratamento de Erros ==="
+
+begin
+  response = client.chat_completion(
+    model: 'modelo-invalido',
+    messages: [
+      { role: 'user', content: 'Teste' }
+    ]
+  )
+rescue => e
+  puts "Erro capturado: #{e.message}"
+end
+puts "\n"
+
+# ============================================
+# EXEMPLO 11: Múltiplos modelos (fallback)
+# ============================================
+puts "=== EXEMPLO 11: Roteamento com Fallback ==="
+
+response = client.chat_completion(
+  models: [
+    'openai/gpt-4o',
+    'anthropic/claude-3.5-sonnet',
+    'google/gemini-pro'
+  ],
+  route: 'fallback',
+  messages: [
+    { role: 'user', content: 'Olá, como você está?' }
+  ]
+)
+
+puts "Modelo usado: #{response[:model]}"
+puts "Resposta: #{response[:choices][0][:message][:content]}"
+puts "\n"
+
+# ============================================
+# EXEMPLO 12: Usando prompt ao invés de messages
+# ============================================
+puts "=== EXEMPLO 12: Usando Prompt ==="
+
+response = client.chat_completion(
+  model: 'openai/gpt-4o',
+  prompt: 'Escreva um haiku sobre programação'
+)
+
+puts "Resposta: #{response[:choices][0][:text] || response[:choices][0][:message][:content]}"
+puts "\n"
+
+puts "=== Exemplos concluídos ==="

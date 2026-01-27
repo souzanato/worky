@@ -20,6 +20,39 @@ class WorkflowExecutionEvent < ApplicationRecord
     workflow_execution.artifacts.where(title: "#{self.action.artifact_name} (EXECUTION ##{self.workflow_execution.id})")&.last
   end
 
+
+  def substituir_placeholders(hash, placeholders, prompt)
+    hash.transform_values do |valor|
+      case valor
+      when Hash
+        substituir_placeholders(valor, placeholders, prompt)
+      when Array
+        valor.map { |item| item.is_a?(Hash) ? substituir_placeholders(item, placeholders, prompt) : substituir_valor(item, placeholders) }
+      else
+        substituir_valor(valor, placeholders, prompt)
+      end
+    end
+  end
+
+  def substituir_valor(valor, placeholders, prompt)
+    placeholders.each do |p|
+      if valor == p[:placeholder]
+        if p[:placeholder] == "<<prompt>>"
+          return prompt
+        else
+          return p[:replacement]
+        end
+      end
+    end
+    valor
+  end
+
+  def custom_attributes_placeholders
+    [
+      { placeholder: "<<prompt>>", replacement: "prompt" }
+    ]
+  end
+
   def create_artifact_with_stream(sse)
     unless skip_artifact_create?
       unless self.action.has_ai_action
@@ -36,12 +69,21 @@ class WorkflowExecutionEvent < ApplicationRecord
         )
       else
         sse.write({ progress: 40, message: "Loading RAG content..." }, event: "status")
-        pinecone_results = set_rag_content
+        pinecone_results = set_rag_content || ""
         strip_rag_content!
+
         prompt = "#{self.input_data}\n\n---\n\n#REFERENCE KNOWLEDGE BASE\n\n#{pinecone_results}"
-        ai_client = Action.find_ai_model_by_code(self.action.ai_action.ai_model).klass.new
-        sse.write({ progress: 60, message: "Processing prompt with #{self.action.ai_action.ai_model}..." }, event: "status")
-        result = ai_client.ask(prompt, self.action, sse: sse)
+
+        # prompt de parametro: decisão provisoria, considerando que o prompt é procesado após a instrução de "prompt it"
+        request_hash = substituir_placeholders(self.action.ai_action.custom_attributes, custom_attributes_placeholders, prompt)
+        request_hash[:model] = self.action.ai_action.best_model_picker ? self.select_ai_model(sse) : self.action.ai_action.ai_model
+        request_hash[:sse] = sse
+        request_hash.deep_symbolize_keys!
+        ai_client = Ai::OpenRouter::Assistant.new
+        sse.write({ progress: 60, message: "Processing prompt with #{request_hash[:model]}..." }, event: "status")
+        sleep 5
+        result = ai_client.chat_completion(**request_hash)
+        content = result&.dig(:choices, 0, :message, :content)
 
         sse.write({ progress: 75, message: "Creating artifact..." }, event: "status")
         artifact = Artifact.find_or_initialize_by(
@@ -52,7 +94,7 @@ class WorkflowExecutionEvent < ApplicationRecord
 
         artifact.update!(
           description: self.action.description,
-          content: result[:text]
+          content: content
         )
 
         self.update(output_data: result)
@@ -71,6 +113,47 @@ class WorkflowExecutionEvent < ApplicationRecord
   end
 
   private
+
+  def select_ai_model(sse)
+    available_models = Ai::OpenRouter::Assistant.list_models
+    ai_client = Ai::OpenRouter::Assistant.new
+    sse.write({ progress: 59, message: "Selecting best model for the task..." }, event: "status")
+
+    meta_prompt = <<~MARKDOWN
+      You are an expert model router. Analyze the USER PROMPT and select EXACTLY ONE model from the MODEL LIST that best matches.
+
+      CRITERIA (reason step-by-step internally, output ONLY the model name):
+      1. Code/programming → coding-specialized models
+      2. Math/reasoning → math/logic models
+      3. Creative/writing → creative/general models
+      4. Long context/analysis → high-context models
+      5. Vision/multimodal → vision models
+      6. Fast/cheap → lightweight models
+
+      EXAMPLES:
+      USER PROMPT: "Write Python code for API"
+      → "gpt-4o-code"  [coding]
+
+      USER PROMPT: "Solve 2x + 3 = 7"
+      → "o1-mini"  [math]
+
+      USER PROMPT: "Write a poem about cats"
+      → "claude-3.5-sonnet"  [creative]
+
+      USER PROMPT:
+      #{self.action.content}
+
+      MODEL LIST:
+      #{available_models.map { |a| a.name }.join("\n")}
+    MARKDOWN
+
+    request_hash = { messages: [ { role: "user", content: meta_prompt } ], model: "perplexity/sonar-pro" }
+    result = ai_client.chat_completion(**request_hash)
+    model = result&.dig(:choices, 0, :message, :content)
+    model_id = available_models.filter { |a| a&.name&.eql?(model) }&.first&.dig(:id)
+    model_id
+  end
+
 
   def strip_rag_content!
     return if input_data.blank?
@@ -142,6 +225,8 @@ class WorkflowExecutionEvent < ApplicationRecord
   end
 
   def set_rag_content
+    return nil if self&.action&.rag_searcher&.map { |key, value| value }&.flatten&.empty?
+
     searcher = parse_searcher_block
     pinecone_prompts = build_pinecone_prompt(searcher[:prompts])
     pinecone_artifacts = searcher[:artifacts]

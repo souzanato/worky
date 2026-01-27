@@ -54,7 +54,7 @@ class WorkflowsController < ApplicationController
       :title, :description,
       steps_attributes: [
         :id, :title, :description, :order, :_destroy,
-        { actions_attributes: [ :id, :title, :description, :order, :content, :ai_action, :_destroy, :has_prompt_generator, ai_action_attributes: [ :id, :ai_model, :custom_attributes ] ] }
+        { actions_attributes: [ :id, :title, :description, :order, :content, :ai_action, :_destroy, :has_prompt_generator, ai_action_attributes: [ :id, :ai_model, :best_model_picker, :custom_attributes ] ] }
       ]
     )
   end

@@ -14,5 +14,4 @@ class AiAction < ApplicationRecord
       end
     end
   end
-
 end
