@@ -1,8 +1,8 @@
 #!/bin/bash
-set -eo pipefail   # mantém erro e pipefail, mas sem -u
+set -e
 
 APP_DIR="/opt/worky"
-RVM_PATH="/home/renato/.rvm/scripts/rvm"
+RUBY_PATH="/home/renato/.rvm/rubies/ruby-3.4.8/bin"
 PUMA_CONFIG="$APP_DIR/config/puma.rb"
 LOG_DIR="$APP_DIR/log"
 
@@ -11,19 +11,14 @@ mkdir -p "$LOG_DIR"
 
 echo "[$(date)] Iniciando Puma em produção..." >> "$LOG_DIR/puma-start.log" 2>&1
 
-# Carrega RVM (se existir)
-if [ -s "$RVM_PATH" ]; then
-  source "$RVM_PATH"
-else
-  echo "[$(date)] ERRO: RVM não encontrado em $RVM_PATH" >> "$LOG_DIR/puma-start.log" 2>&1
-  exit 1
-fi
-
 cd "$APP_DIR"
 
-# Exporta variáveis se não existirem
-export RAILS_ENV="${RAILS_ENV:-production}"
+# Exporta variáveis
+export RAILS_ENV="production"
+export PATH="$RUBY_PATH:$PATH"
+export GEM_HOME="/home/renato/.rvm/gems/ruby-3.4.8"
+export GEM_PATH="/home/renato/.rvm/gems/ruby-3.4.8:/home/renato/.rvm/gems/ruby-3.4.8@global"
 
-# Inicia Puma com log de saída e erro
-exec bundle exec puma -C "$PUMA_CONFIG" \
+# Inicia Puma usando caminho absoluto
+exec "$RUBY_PATH/bundle" exec puma -C "$PUMA_CONFIG" \
   >> "$LOG_DIR/puma.log" 2>&1
