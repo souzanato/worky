@@ -3,6 +3,8 @@
 module Api
   module V1
     class PdfsController < ApplicationController
+      skip_before_action :verify_authenticity_token
+
       before_action :validate_file_presence, except: [:health]
       before_action :validate_pdf_file, except: [:health]
 
