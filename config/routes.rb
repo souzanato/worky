@@ -50,6 +50,21 @@ Rails.application.routes.draw do
     namespace :api do
       namespace :v1 do
         resources :web_scrapings, only: [ :show, :create ]
+
+        # PDF Processing
+        resources :pdfs, only: [] do
+          collection do
+            get :health
+            post :extract_full
+            post :extract_text
+            post :extract_images
+            post :extract_annotations
+            post :extract_bookmarks
+            post :extract_links
+            post :render_page
+            post :render_page_base64
+          end
+        end
       end
     end
   end
