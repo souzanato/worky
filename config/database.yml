@@ -2,18 +2,18 @@ default: &default
   adapter: postgresql
   encoding: utf8
   pool: <%= ENV.fetch("RAILS_MAX_THREADS") { 5 } %>
-  host: 127.0.0.1
-  username: postgres
-  password: postgres
+  host: <%= ENV['WORKY_HOST'] %>
+  username: <%= ENV['WORKY_USER'] %>
+  password: <%= ENV['WORKY_PASSWORD'] %>
   port: 5432
 
 development:
   primary:
     <<: *default
-    database: <%= ENV['WORKY_DATABASE'] || 'worky-prod' %>
+    database: <%= ENV['WORKY_DATABASE'] || 'worky-dev' %>
   queue:
     <<: *default
-    database: <%= ENV['WORKY_QUEUE_DATABASE'] || 'worky-prod-queue' %>
+    database: <%= ENV['WORKY_QUEUE_DATABASE'] || 'worky-dev-queue' %>
     migrations_paths: db/queue_migrate
 
 test:
