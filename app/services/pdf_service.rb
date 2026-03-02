@@ -60,6 +60,26 @@ class PdfService
     post_file("/extract/annotations", file, timeout: OPERATION_TIMEOUTS[:extract_annotations])
   end
 
+  # Cria um pdf com anotações visíveis
+  def render_with_annotations(file, zoom: 2.0, format: "png", output: "pdf", show_annotations: true, show_comment_popups: false)
+    params = {
+      zoom: zoom,
+      format: format,
+      output: output,
+      show_annotations: show_annotations,
+      show_comment_popups: show_comment_popups
+    }
+
+    post_file(
+      "/render/all",
+      file,
+      params: params,
+      parse_json: false,
+      timeout: OPERATION_TIMEOUTS[:render_with_annotations]
+    )
+  end
+
+
   # Extrai marcadores (bookmarks/TOC)
   def extract_bookmarks(file)
     post_file("/extract/bookmarks", file, timeout: OPERATION_TIMEOUTS[:extract_bookmarks])

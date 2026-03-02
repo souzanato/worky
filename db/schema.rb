@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[8.0].define(version: 2025_12_24_201633) do
+ActiveRecord::Schema[8.0].define(version: 2026_03_02_170340) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "pg_catalog.plpgsql"
 
@@ -135,6 +135,11 @@ ActiveRecord::Schema[8.0].define(version: 2025_12_24_201633) do
     t.datetime "updated_at", null: false
     t.index ["document_id", "chunk_index"], name: "index_pinecone_chunks_on_document_id_and_chunk_index", unique: true
     t.index ["text_hash"], name: "index_pinecone_chunks_on_text_hash", unique: true
+  end
+
+  create_table "rendered_pdfs", force: :cascade do |t|
+    t.datetime "created_at", null: false
+    t.datetime "updated_at", null: false
   end
 
   create_table "roles", force: :cascade do |t|

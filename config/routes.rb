@@ -63,6 +63,7 @@ Rails.application.routes.draw do
             post :extract_links
             post :render_page
             post :render_page_base64
+            post :render_with_annotations
           end
         end
       end
