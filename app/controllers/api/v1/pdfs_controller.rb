@@ -119,6 +119,37 @@ module Api
         render json: { error: e.message }, status: :service_unavailable
       end
 
+      # POST /api/v1/pdfs/render_annotations_images
+      def render_annotations_images
+        zoom = params[:zoom]&.to_f || 2.0
+        format = params[:format] || "png"
+        show_annotations = boolean_param(params[:show_annotations], default: true)
+        show_comment_popups = boolean_param(params[:show_comment_popups], default: true)
+
+        zip_data = pdf_service.render_annotations_images(
+          uploaded_file,
+          zoom: zoom,
+          format: format,
+          show_annotations: show_annotations,
+          show_comment_popups: show_comment_popups
+        )
+
+        rendered = RenderedPdf.create!
+
+        rendered.file.attach(
+          io: StringIO.new(zip_data),
+          filename: rendered_zip_filename,
+          content_type: "application/zip"
+        )
+
+        render json: {
+          id: rendered.id,
+          url: rails_blob_url(rendered.file, only_path: false)
+        }, status: :created
+      rescue PdfService::Error => e
+        render json: { error: e.message }, status: :service_unavailable
+      end      
+
       # POST /api/v1/pdfs/render_page_base64
       def render_page_base64
         page = params[:page]&.to_i || 1
@@ -149,7 +180,12 @@ module Api
         return default if value.nil?
         ActiveModel::Type::Boolean.new.cast(value)
       end
-
+      
+      def rendered_zip_filename
+        original_name = uploaded_file.original_filename || "arquivo.pdf"
+        base_name = File.basename(original_name, ".pdf")
+        "#{base_name}-imagens.zip"
+      end
 
       def pdf_service
         @pdf_service ||= PdfService.new

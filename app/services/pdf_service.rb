@@ -19,6 +19,8 @@ class PdfService
     extract_images:   180,  # Extração de imagens
     render_page:      120,  # Renderização de página
     render_page_base64: 120,
+    render_with_annotations: 300, # Renderização com anotações pode ser pesada
+    render_annotations_images: 300,
     extract_metadata:  60,
     extract_annotations: 60,
     extract_bookmarks:   60,
@@ -76,6 +78,24 @@ class PdfService
       params: params,
       parse_json: false,
       timeout: OPERATION_TIMEOUTS[:render_with_annotations]
+    )
+  end
+
+  def render_annotations_images(file, zoom: 2.0, format: "png", show_annotations: true, show_comment_popups: true)
+    params = {
+      zoom: zoom,
+      format: format,
+      output: "zip",
+      show_annotations: show_annotations,
+      show_comment_popups: show_comment_popups
+    }
+
+    post_file(
+      "/render/all",
+      file,
+      params: params,
+      parse_json: false,
+      timeout: OPERATION_TIMEOUTS[:render_annotations_images]
     )
   end
 
