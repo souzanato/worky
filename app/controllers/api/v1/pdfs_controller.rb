@@ -167,6 +167,33 @@ module Api
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
       end
+      
+      # POST /api/v1/pdfs/render_pdf_images
+      def render_pdf_images
+        zoom = params[:zoom]&.to_f || 2.0
+        format = params[:format] || "png"
+
+        zip_data = pdf_service.render_pdf_images(
+          uploaded_file,
+          zoom: zoom,
+          format: format
+        )
+
+        rendered = RenderedPdf.create!
+
+        rendered.file.attach(
+          io: StringIO.new(zip_data),
+          filename: rendered_zip_filename,
+          content_type: "application/zip"
+        )
+
+        render json: {
+          id: rendered.id,
+          url: rails_blob_url(rendered.file, only_path: false)
+        }, status: :created
+      rescue PdfService::Error => e
+        render json: { error: e.message }, status: :service_unavailable
+      end      
 
       private
 
@@ -180,7 +207,7 @@ module Api
         return default if value.nil?
         ActiveModel::Type::Boolean.new.cast(value)
       end
-      
+
       def rendered_zip_filename
         original_name = uploaded_file.original_filename || "arquivo.pdf"
         base_name = File.basename(original_name, ".pdf")

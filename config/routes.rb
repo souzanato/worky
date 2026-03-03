@@ -65,6 +65,7 @@ Rails.application.routes.draw do
             post :render_page_base64
             post :render_with_annotations
             post :render_annotations_images
+            post :render_pdf_images
           end
         end
       end
