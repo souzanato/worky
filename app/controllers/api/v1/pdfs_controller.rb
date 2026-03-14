@@ -143,6 +143,8 @@ module Api
           content_type: "application/zip"
         )
 
+        Rails.logger.info "METRICS_BEFORE_RENDER: #{metrics.class} #{metrics.inspect}"
+
         render json: {
           id: rendered.id,
           url: rails_blob_url(rendered.file, only_path: false),
