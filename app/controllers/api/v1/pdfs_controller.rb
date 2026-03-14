@@ -122,8 +122,8 @@ module Api
 
       # POST /api/v1/pdfs/render_annotations_images
       def render_annotations_images
-        zoom = params[:zoom]&.to_f || 2.0
-        format = params[:format] || "png"
+        zoom = params[:zoom]&.to_f || 1.5
+        format = params[:format] || "jpg"
         show_annotations = boolean_param(params[:show_annotations], default: true)
         show_comment_popups = boolean_param(params[:show_comment_popups], default: true)
 
@@ -171,8 +171,8 @@ module Api
 
       # POST /api/v1/pdfs/render_pdf_images
       def render_pdf_images
-        zoom = params[:zoom]&.to_f || 2.0
-        format = params[:format] || "png"
+        zoom = params[:zoom]&.to_f || 1.5
+        format = params[:format] || "jpg"
 
         zip_data = pdf_service.render_pdf_images(
           uploaded_file,
