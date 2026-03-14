@@ -148,7 +148,7 @@ module Api
         }, status: :created
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
-      end      
+      end
 
       # POST /api/v1/pdfs/render_page_base64
       def render_page_base64
@@ -167,7 +167,7 @@ module Api
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
       end
-      
+
       # POST /api/v1/pdfs/render_pdf_images
       def render_pdf_images
         zoom = params[:zoom]&.to_f || 2.0
@@ -193,7 +193,16 @@ module Api
         }, status: :created
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
-      end      
+      end
+
+      # POST /api/v1/pdfs/split_urls
+      def split_urls
+        pages_per_chunk = params[:pages_per_chunk]&.to_i || 10
+        result = pdf_service.split_urls(uploaded_file, pages_per_chunk: pages_per_chunk)
+        render json: result
+      rescue PdfService::Error => e
+        render json: { error: e.message }, status: :service_unavailable
+      end
 
       private
 

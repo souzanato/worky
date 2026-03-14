@@ -14,19 +14,20 @@ class PdfService
 
   # Timeouts específicos por operação (em segundos)
   OPERATION_TIMEOUTS = {
-    extract_full:     300,  # OCR completo pode ser pesado
-    extract_text:     180,  # Extração de texto simples
-    extract_images:   180,  # Extração de imagens
-    render_page:      120,  # Renderização de página
-    render_page_base64: 120,
-    render_with_annotations: 300, # Renderização com anotações pode ser pesada
+    extract_full:              300,
+    extract_text:              180,
+    extract_images:            180,
+    render_page:               120,
+    render_page_base64:        120,
+    render_with_annotations:   300,
     render_annotations_images: 300,
-    render_pdf_images: 300,
-    extract_metadata:  60,
-    extract_annotations: 60,
-    extract_bookmarks:   60,
-    extract_links:       60,
-    health_check:        10
+    render_pdf_images:         300,
+    extract_metadata:           60,
+    extract_annotations:        60,
+    extract_bookmarks:          60,
+    extract_links:              60,
+    split_urls:                300,
+    health_check:               10
   }.freeze
 
   def initialize(base_url: DEFAULT_BASE_URL, timeout: DEFAULT_TIMEOUT)
@@ -63,7 +64,6 @@ class PdfService
     post_file("/extract/annotations", file, timeout: OPERATION_TIMEOUTS[:extract_annotations])
   end
 
-  # Cria um pdf com anotações visíveis
   def render_with_annotations(file, zoom: 2.0, format: "png", output: "pdf", show_annotations: true, show_comment_popups: false)
     params = {
       zoom: zoom,
@@ -72,14 +72,7 @@ class PdfService
       show_annotations: show_annotations,
       show_comment_popups: show_comment_popups
     }
-
-    post_file(
-      "/render/all",
-      file,
-      params: params,
-      parse_json: false,
-      timeout: OPERATION_TIMEOUTS[:render_with_annotations]
-    )
+    post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_with_annotations])
   end
 
   def render_annotations_images(file, zoom: 2.0, format: "png", show_annotations: true, show_comment_popups: true)
@@ -90,16 +83,8 @@ class PdfService
       show_annotations: show_annotations,
       show_comment_popups: show_comment_popups
     }
-
-    post_file(
-      "/render/all",
-      file,
-      params: params,
-      parse_json: false,
-      timeout: OPERATION_TIMEOUTS[:render_annotations_images]
-    )
+    post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_annotations_images])
   end
-
 
   # Extrai marcadores (bookmarks/TOC)
   def extract_bookmarks(file)
@@ -123,6 +108,24 @@ class PdfService
     post_file("/render/page/base64", file, params: params, timeout: OPERATION_TIMEOUTS[:render_page_base64])
   end
 
+  def render_pdf_images(file, zoom: 2.0, format: "png")
+    params = {
+      zoom: zoom,
+      format: format,
+      output: "zip",
+      show_annotations: false,
+      show_comment_popups: false
+    }
+    post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_pdf_images])
+  end
+
+  # Divide o PDF em lotes e retorna uma URL por lote
+  # Retorna: { session_id, total_pages, pages_per_chunk, num_chunks, chunks: [...] }
+  def split_urls(file, pages_per_chunk: 10)
+    params = { pages_per_chunk: pages_per_chunk }
+    post_file("/split/urls", file, params: params, timeout: OPERATION_TIMEOUTS[:split_urls])
+  end
+
   # Health check
   def health_check
     get("/health", timeout: OPERATION_TIMEOUTS[:health_check])
@@ -132,24 +135,6 @@ class PdfService
     health_check["status"] == "healthy"
   rescue
     false
-  end
-
-  def render_pdf_images(file, zoom: 2.0, format: "png")
-    params = {
-      zoom: zoom,
-      format: format,
-      output: "zip",
-      show_annotations: false,
-      show_comment_popups: false
-    }
-
-    post_file(
-      "/render/all",
-      file,
-      params: params,
-      parse_json: false,
-      timeout: OPERATION_TIMEOUTS[:render_pdf_images]
-    )
   end
 
   private
