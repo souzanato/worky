@@ -66,6 +66,7 @@ Rails.application.routes.draw do
             post :render_with_annotations
             post :render_annotations_images
             post :render_pdf_images
+            post :split_urls
           end
         end
       end
