@@ -1,4 +1,5 @@
 # app/controllers/api/v1/pdfs_controller.rb
+require "base64"
 
 module Api
   module V1
@@ -198,8 +199,23 @@ module Api
       # POST /api/v1/pdfs/split_urls
       def split_urls
         pages_per_chunk = params[:pages_per_chunk]&.to_i || 10
-        result = pdf_service.split_urls(uploaded_file, pages_per_chunk: pages_per_chunk)
-        render json: result
+        result = pdf_service.split_chunks(uploaded_file, pages_per_chunk: pages_per_chunk)
+
+        # Salva cada chunk no Active Storage e substitui o base64 pela URL pública
+        chunks_with_urls = result["chunks"].map do |chunk|
+          pdf_bytes = Base64.decode64(chunk["pdf_base64"])
+
+          rendered = RenderedPdf.create!
+          rendered.file.attach(
+            io: StringIO.new(pdf_bytes),
+            filename: chunk["filename"],
+            content_type: "application/pdf"
+          )
+
+          chunk.except("pdf_base64").merge("url" => rails_blob_url(rendered.file, only_path: false))
+        end
+
+        render json: result.except("chunks").merge("chunks" => chunks_with_urls)
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
       end

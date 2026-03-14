@@ -119,11 +119,11 @@ class PdfService
     post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_pdf_images])
   end
 
-  # Divide o PDF em lotes e retorna uma URL por lote
-  # Retorna: { session_id, total_pages, pages_per_chunk, num_chunks, chunks: [...] }
-  def split_urls(file, pages_per_chunk: 10)
+  # Divide o PDF em lotes, salva cada chunk no Active Storage e retorna URLs públicas
+  # Retorna: { total_pages, pages_per_chunk, num_chunks, chunks: [...] }
+  def split_chunks(file, pages_per_chunk: 10)
     params = { pages_per_chunk: pages_per_chunk }
-    post_file("/split/urls", file, params: params, timeout: OPERATION_TIMEOUTS[:split_urls])
+    post_file("/split/chunks", file, params: params, timeout: OPERATION_TIMEOUTS[:split_urls])
   end
 
   # Health check
