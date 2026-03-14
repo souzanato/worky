@@ -75,7 +75,7 @@ class PdfService
     post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_with_annotations])
   end
 
-  def render_annotations_images(file, zoom: 2.0, format: "png", show_annotations: true, show_comment_popups: true)
+  def render_annotations_images(file, zoom: 1.5, format: "jpg", show_annotations: true, show_comment_popups: true)
     params = {
       zoom: zoom,
       format: format,
@@ -108,7 +108,7 @@ class PdfService
     post_file("/render/page/base64", file, params: params, timeout: OPERATION_TIMEOUTS[:render_page_base64])
   end
 
-  def render_pdf_images(file, zoom: 2.0, format: "png")
+  def render_pdf_images(file, zoom: 1.5, format: "jpg")
     params = {
       zoom: zoom,
       format: format,
