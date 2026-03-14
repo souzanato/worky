@@ -127,7 +127,7 @@ module Api
         show_annotations = boolean_param(params[:show_annotations], default: true)
         show_comment_popups = boolean_param(params[:show_comment_popups], default: true)
 
-        zip_data = pdf_service.render_annotations_images(
+        zip_data, metrics = pdf_service.render_annotations_images(
           uploaded_file,
           zoom: zoom,
           format: format,
@@ -136,7 +136,6 @@ module Api
         )
 
         rendered = RenderedPdf.create!
-
         rendered.file.attach(
           io: StringIO.new(zip_data),
           filename: rendered_zip_filename,
@@ -145,7 +144,8 @@ module Api
 
         render json: {
           id: rendered.id,
-          url: rails_blob_url(rendered.file, only_path: false)
+          url: rails_blob_url(rendered.file, only_path: false),
+          _metrics: metrics
         }, status: :created
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable
@@ -174,14 +174,13 @@ module Api
         zoom = params[:zoom]&.to_f || 1.5
         format = params[:format] || "jpg"
 
-        zip_data = pdf_service.render_pdf_images(
+        zip_data, metrics = pdf_service.render_pdf_images(
           uploaded_file,
           zoom: zoom,
           format: format
         )
 
         rendered = RenderedPdf.create!
-
         rendered.file.attach(
           io: StringIO.new(zip_data),
           filename: rendered_zip_filename,
@@ -190,7 +189,8 @@ module Api
 
         render json: {
           id: rendered.id,
-          url: rails_blob_url(rendered.file, only_path: false)
+          url: rails_blob_url(rendered.file, only_path: false),
+          _metrics: metrics
         }, status: :created
       rescue PdfService::Error => e
         render json: { error: e.message }, status: :service_unavailable

@@ -83,7 +83,9 @@ class PdfService
       show_annotations: show_annotations,
       show_comment_popups: show_comment_popups
     }
-    post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_annotations_images])
+    result = post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_annotations_images])
+    # result pode ser [body, metrics] ou apenas body
+    result.is_a?(Array) ? result : [result, nil]
   end
 
   # Extrai marcadores (bookmarks/TOC)
@@ -116,7 +118,8 @@ class PdfService
       show_annotations: false,
       show_comment_popups: false
     }
-    post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_pdf_images])
+    result = post_file("/render/all", file, params: params, parse_json: false, timeout: OPERATION_TIMEOUTS[:render_pdf_images])
+    result.is_a?(Array) ? result : [result, nil]
   end
 
   # Divide o PDF em lotes, salva cada chunk no Active Storage e retorna URLs públicas
@@ -211,7 +214,19 @@ class PdfService
 
     case response
     when Net::HTTPSuccess
-      parse_json ? JSON.parse(response.body) : response.body
+      if parse_json
+        JSON.parse(response.body)
+      else
+        # Captura X-Metrics do header se existir
+        metrics = begin
+          raw = response["x-metrics"]
+          raw ? JSON.parse(raw) : nil
+        rescue
+          nil
+        end
+        # Retorna [body, metrics] para que o chamador possa usar as métricas
+        metrics ? [response.body, metrics] : response.body
+      end
     when Net::HTTPBadRequest
       error_detail = begin
         JSON.parse(response.body)["detail"]
