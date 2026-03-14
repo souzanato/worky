@@ -105,7 +105,6 @@ module Api
         )
 
         rendered_pdf = RenderedPdf.create!
-
         rendered_pdf.file.attach(
           io: StringIO.new(pdf_data),
           filename: rendered_pdf_filename,
@@ -134,6 +133,8 @@ module Api
           show_annotations: show_annotations,
           show_comment_popups: show_comment_popups
         )
+
+        Rails.logger.info "METRICS_DEBUG render_annotations_images: #{metrics.inspect}"
 
         rendered = RenderedPdf.create!
         rendered.file.attach(
@@ -180,6 +181,8 @@ module Api
           format: format
         )
 
+        Rails.logger.info "METRICS_DEBUG render_pdf_images: #{metrics.inspect}"
+
         rendered = RenderedPdf.create!
         rendered.file.attach(
           io: StringIO.new(zip_data),
@@ -201,7 +204,6 @@ module Api
         pages_per_chunk = params[:pages_per_chunk]&.to_i || 10
         result = pdf_service.split_chunks(uploaded_file, pages_per_chunk: pages_per_chunk)
 
-        # Salva cada chunk no Active Storage e substitui o base64 pela URL pública
         chunks_with_urls = result["chunks"].map do |chunk|
           pdf_bytes = Base64.decode64(chunk["pdf_base64"])
 
