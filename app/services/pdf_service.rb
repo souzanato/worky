@@ -124,8 +124,9 @@ class PdfService
 
   # Divide o PDF em lotes, salva cada chunk no Active Storage e retorna URLs públicas
   # Retorna: { total_pages, pages_per_chunk, num_chunks, chunks: [...] }
-  def split_chunks(file, pages_per_chunk: 10)
+  def split_chunks(file, pages_per_chunk: 10, skip_pages: "")
     params = { pages_per_chunk: pages_per_chunk }
+    params[:skip_pages] = skip_pages if skip_pages.present?
     post_file("/split/chunks", file, params: params, timeout: OPERATION_TIMEOUTS[:split_urls])
   end
 
