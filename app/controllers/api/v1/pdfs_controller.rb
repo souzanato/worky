@@ -204,7 +204,13 @@ module Api
       # POST /api/v1/pdfs/split_urls
       def split_urls
         pages_per_chunk = params[:pages_per_chunk]&.to_i || 10
-        result = pdf_service.split_chunks(uploaded_file, pages_per_chunk: pages_per_chunk)
+        skip_pages      = params[:skip_pages].to_s.strip   # ex: "1", "1;3-5;9", ""
+
+        result = pdf_service.split_chunks(
+          uploaded_file,
+          pages_per_chunk: pages_per_chunk,
+          skip_pages: skip_pages
+        )
 
         chunks_with_urls = result["chunks"].map do |chunk|
           pdf_bytes = Base64.decode64(chunk["pdf_base64"])
